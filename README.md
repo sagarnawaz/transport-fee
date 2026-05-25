@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Transport Fee Manager
 
-## Getting Started
+A mobile-first PWA for a local transport or van business. Customers register, view their monthly fee, upload payment proof, and admins manually verify payments before any fee becomes paid.
 
-First, run the development server:
+## Stack
+
+- Next.js App Router
+- Tailwind CSS
+- Supabase Auth, Database, RLS, and private Storage
+- PWA manifest and service worker
+
+## Local Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create `.env.local`:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+3. In Supabase SQL Editor, run these files in order:
+
+```text
+supabase/schema.sql
+supabase/rls.sql
+supabase/storage.sql
+```
+
+4. Enable email/password auth in Supabase. The app uses the customer phone number as a local login identifier by creating an internal email like `03001234567@transport.local`. For easiest local-business setup, disable email confirmation in Supabase Auth settings.
+
+5. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## First Admin
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Register once from `/auth/register` using the admin phone number. Then edit `supabase/seed-admin.sql`, replace `03000000000` with that phone number, and run it in Supabase SQL Editor. After login, that user will land in `/admin`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Important Payment Rule
 
-## Learn More
+Customer proof upload never marks a fee as paid. The database trigger only moves the fee to `pending_verification`. A fee becomes `paid` or `partial` only when an admin approves the proof from **Pending Payments**.
 
-To learn more about Next.js, take a look at the following resources:
+## Main Screens
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Admin:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Dashboard
+- Customers
+- Pending Customers
+- Routes
+- Monthly Fees
+- Pending Payments
+- Reports
+- Settings
 
-## Deploy on Vercel
+Customer:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Register/Login
+- Dashboard
+- My Profile
+- My Fees
+- Submit Payment Proof
+- Payment History
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Storage
+
+The SQL creates a private `payment-proofs` bucket. Screenshots are stored under each customer ID folder. Admin views use short-lived signed URLs.
+
+## Reports and Reminders
+
+Reports download as CSV from the Reports page. WhatsApp reminders use free `wa.me` links and the template from Settings.
+
+## Production Notes
+
+- Set the Supabase environment variables in your hosting provider.
+- Keep the Supabase anon key public; RLS policies protect data access.
+- Review Supabase Auth email confirmation settings before onboarding customers.
+- Install the app on Android from the browser menu after deployment.
