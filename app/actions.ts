@@ -231,25 +231,57 @@ export async function submitProofAction(formData: FormData) {
   const { data: customer } = await supabase.from("customers").select("id").eq("user_id", user.id).single();
   if (!customer) redirect("/customer/submit-payment?error=no-customer");
 
-  const file = formData.get("screenshot");
-  let screenshotPath: string | null = null;
-  if (file instanceof File && file.size > 0) {
-    const ext = file.name.split(".").pop() || "jpg";
-    screenshotPath = `${customer.id}/${crypto.randomUUID()}.${ext}`;
-    await supabase.storage.from("payment-proofs").upload(screenshotPath, file, { upsert: false });
+  const feeRecordId = value(formData, "fee_record_id");
+  const amount = asNumber(formData, "amount");
+  const paymentMethod = value(formData, "payment_method");
+  const allowedMethods = ["Bank Transfer", "Easypaisa", "JazzCash", "Cash", "Other"];
+
+  if (!feeRecordId || !paymentMethod || !allowedMethods.includes(paymentMethod)) {
+    redirect("/customer/submit-payment?error=validation");
   }
 
-  const feeRecordId = value(formData, "fee_record_id");
-  await supabase.from("payment_proofs").insert({
+  if (amount <= 0) {
+    redirect("/customer/submit-payment?error=amount");
+  }
+
+  const { data: fee } = await supabase
+    .from("monthly_fee_records")
+    .select("id")
+    .eq("id", feeRecordId)
+    .eq("customer_id", customer.id)
+    .in("status", ["unpaid", "partial", "rejected"])
+    .maybeSingle();
+
+  if (!fee) {
+    redirect("/customer/submit-payment?error=fee");
+  }
+
+  const file = formData.get("screenshot");
+  let screenshotPath: string | null = null;
+  if (!(file instanceof File) || file.size <= 0 || !file.type.startsWith("image/")) {
+    redirect("/customer/submit-payment?error=screenshot");
+  }
+
+  const ext = file.name.split(".").pop() || "jpg";
+  screenshotPath = `${customer.id}/${crypto.randomUUID()}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(screenshotPath, file, { upsert: false });
+  if (uploadError) {
+    redirect("/customer/submit-payment?error=upload");
+  }
+
+  const { error: insertError } = await supabase.from("payment_proofs").insert({
     customer_id: customer.id,
     fee_record_id: feeRecordId,
-    amount: asNumber(formData, "amount"),
-    payment_method: value(formData, "payment_method"),
+    amount,
+    payment_method: paymentMethod,
     transaction_id: value(formData, "transaction_id") || null,
     payment_date: value(formData, "payment_date") || new Date().toISOString().slice(0, 10),
     screenshot_path: screenshotPath,
     status: "pending",
   });
+  if (insertError) {
+    redirect("/customer/submit-payment?error=submit");
+  }
 
   revalidatePath("/customer");
   redirect("/customer/submit-payment?submitted=1");
