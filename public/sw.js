@@ -1,5 +1,5 @@
 const CACHE_NAME = "transport-fee-manager-v1";
-const APP_SHELL = ["/", "/auth/login", "/auth/register", "/icon.svg"];
+const APP_SHELL = ["/", "/auth/login", "/auth/register", "/logo.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));

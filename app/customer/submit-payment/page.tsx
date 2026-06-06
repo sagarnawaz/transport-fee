@@ -4,7 +4,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { getCurrentCustomer } from "@/lib/app-queries";
-import { formatMoney, monthNames } from "@/lib/utils/date";
+import { paymentInstructionsForDrop } from "@/lib/daniyal-transport";
+import { formatMoney, formatMonthYear } from "@/lib/utils/date";
 
 export default async function SubmitPaymentPage({
   searchParams,
@@ -29,7 +30,7 @@ export default async function SubmitPaymentPage({
     validation: "Please fill the required fields.",
     amount: "Enter a valid payment amount.",
     fee: "Please select a payable fee.",
-    screenshot: "Please upload a payment proof image.",
+    screenshot: "Please upload a payment proof image up to 5 MB.",
     upload: "Could not upload the screenshot. Please try again.",
     submit: "Could not submit payment. Please try again.",
     "missing-config": "App setup is incomplete.",
@@ -40,16 +41,16 @@ export default async function SubmitPaymentPage({
     <main className="section">
       <form action={submitProofAction} className="mx-auto grid max-w-2xl gap-4">
         <section className="panel overflow-hidden">
-          <div className="bg-[#087b5b] p-5 text-white">
-            <p className="text-sm font-semibold text-emerald-50">Payment proof</p>
+          <div className="bg-neutral-950 p-5 text-white">
+            <p className="text-sm font-semibold text-red-50">Payment proof</p>
             <h1 className="mt-1 text-2xl font-bold">Submit Payment</h1>
-            <p className="mt-2 text-sm leading-6 text-emerald-50">
+            <p className="mt-2 text-sm leading-6 text-red-50">
               Upload your receipt screenshot after making the payment.
             </p>
           </div>
           <div className="p-5">
             {params.submitted ? (
-              <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+              <p className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
                 Payment submitted. Verification is pending.
               </p>
             ) : null}
@@ -67,7 +68,7 @@ export default async function SubmitPaymentPage({
                 </div>
                 <div className="rounded-lg bg-slate-50 p-3">
                   <p className="text-sm text-slate-500">Fee month</p>
-                  <p className="mt-1 text-base font-bold text-slate-950">{monthNames[firstFee.month - 1]} {firstFee.year}</p>
+                  <p className="mt-1 text-base font-bold text-slate-950">{formatMonthYear(firstFee.month, firstFee.year)}</p>
                 </div>
               </div>
             ) : null}
@@ -80,6 +81,12 @@ export default async function SubmitPaymentPage({
               <h2 className="text-lg font-bold text-slate-950">Payment details</h2>
               <p className="mt-1 text-sm leading-6 text-slate-600">Only these fields are needed for verification.</p>
             </div>
+            {customer ? (
+              <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm leading-6 text-red-950">
+                <p className="font-bold">Route payment account</p>
+                <p className="mt-1 whitespace-pre-line">{paymentInstructionsForDrop(customer.drop_address)}</p>
+              </div>
+            ) : null}
 
             {fees && fees.length > 1 ? (
               <label className="grid gap-2">
@@ -89,7 +96,7 @@ export default async function SubmitPaymentPage({
                     const pending = Number(fee.fee_amount) - Number(fee.paid_amount);
                     return (
                       <option key={fee.id} value={fee.id}>
-                        {monthNames[fee.month - 1]} {fee.year} - {formatMoney(Math.max(pending, 0))}
+                        {formatMonthYear(fee.month, fee.year)} - {formatMoney(Math.max(pending, 0))}
                       </option>
                     );
                   })}

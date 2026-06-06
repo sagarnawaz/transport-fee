@@ -1,5 +1,7 @@
-export const fallbackPickupLocations = ["School Campus"];
-export const fallbackDropLocations = ["Home Stop"];
+import { daniyalDropLocations, daniyalPickupLocations } from "@/lib/daniyal-transport";
+
+export const fallbackPickupLocations = daniyalPickupLocations;
+export const fallbackDropLocations = daniyalDropLocations;
 
 export function optionsFromLines(value: string | null | undefined, fallback: string[]) {
   const options =

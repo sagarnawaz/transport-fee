@@ -3,6 +3,7 @@ import { CalendarDays, CreditCard, MapPin, ReceiptText } from "lucide-react";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { prettyStatus } from "@/components/ui/StatusBadge";
 import { getCurrentCustomer, getSettings } from "@/lib/app-queries";
+import { paymentInstructionsForDrop } from "@/lib/daniyal-transport";
 import { currentMonthYear, formatDisplayDate, formatMoney } from "@/lib/utils/date";
 
 export default async function CustomerDashboard() {
@@ -23,16 +24,16 @@ export default async function CustomerDashboard() {
   return (
     <main className="section">
       <section className="panel overflow-hidden">
-        <div className="bg-[#087b5b] p-5 text-white">
+        <div className="bg-neutral-950 p-5 text-white">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold tracking-wide">
                 {customer?.customer_code ?? "Customer"}
               </p>
               <h1 className="mt-3 truncate text-2xl font-bold">{customer?.full_name ?? "Welcome"}</h1>
-              <p className="mt-1 text-sm text-emerald-50">Current month fee summary</p>
+              <p className="mt-1 text-sm text-red-50">Current month fee summary</p>
             </div>
-            <span className="shrink-0 rounded-full bg-white px-3 py-2 text-sm font-bold text-[#087b5b]">
+            <span className="shrink-0 rounded-full bg-white px-3 py-2 text-sm font-bold text-red-700">
               {rideType}
             </span>
           </div>
@@ -50,7 +51,7 @@ export default async function CustomerDashboard() {
           </div>
 
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-[#087b5b]" style={{ width: `${paidPercent}%` }} />
+            <div className="h-full rounded-full bg-red-700" style={{ width: `${paidPercent}%` }} />
           </div>
           <div className="mt-2 flex items-center justify-between text-xs font-semibold text-slate-500">
             <span>Paid {formatMoney(paidAmount)}</span>
@@ -59,21 +60,21 @@ export default async function CustomerDashboard() {
 
           <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 border-t border-slate-100 pt-5 text-sm">
             <div className="flex gap-3">
-              <CreditCard className="mt-0.5 text-emerald-700" size={18} />
+              <CreditCard className="mt-0.5 text-red-700" size={18} />
               <div>
                 <p className="text-slate-500">Monthly fee</p>
                 <p className="font-bold text-slate-950">{formatMoney(feeAmount)}</p>
               </div>
             </div>
             <div className="flex gap-3">
-              <CalendarDays className="mt-0.5 text-emerald-700" size={18} />
+              <CalendarDays className="mt-0.5 text-red-700" size={18} />
               <div>
                 <p className="text-slate-500">Due date</p>
                 <p className="font-bold text-slate-950">{formatDisplayDate(fee?.due_date ?? customer?.joining_date)}</p>
               </div>
             </div>
             <div className="col-span-2 flex gap-3">
-              <MapPin className="mt-0.5 text-emerald-700" size={18} />
+              <MapPin className="mt-0.5 text-red-700" size={18} />
               <div className="min-w-0">
                 <p className="text-slate-500">Trip</p>
                 <p className="break-words font-bold text-slate-950">
@@ -89,11 +90,11 @@ export default async function CustomerDashboard() {
 
       <section className="panel mt-4 p-5">
         <div className="flex gap-3">
-          <ReceiptText className="mt-0.5 text-emerald-700" size={20} />
+          <ReceiptText className="mt-0.5 text-red-700" size={20} />
           <div>
             <h2 className="text-base font-bold text-slate-950">Payment instructions</h2>
             <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
-              {settings?.payment_instructions ?? "Pay outside the system, then upload your screenshot and transaction ID."}
+              {customer ? paymentInstructionsForDrop(customer.drop_address) : settings?.payment_instructions ?? "Pay outside the system, then upload your screenshot and transaction ID."}
             </p>
           </div>
         </div>

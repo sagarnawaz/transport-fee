@@ -32,7 +32,7 @@ export default async function AdminDashboard() {
       <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map(([label, value, Icon]) => (
           <div className="panel min-w-0 p-4" key={String(label)}>
-            <Icon className="text-emerald-700" size={24} />
+            <Icon className="text-red-700" size={24} />
             <p className="mt-3 text-sm text-slate-500">{String(label)}</p>
             <p className="mt-1 break-words text-xl font-bold text-slate-950 sm:text-2xl">{String(value)}</p>
           </div>

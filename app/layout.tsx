@@ -3,13 +3,17 @@ import { PwaRegister } from "@/components/ui/PwaRegister";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Transport Fee Manager",
-  description: "Mobile-first transport fee tracking for local van businesses.",
-  applicationName: "Transport Fee Manager",
+  title: "Daniyal Transport",
+  description: "Daily pick and drop fee tracking for Daniyal Transport customers.",
+  applicationName: "Daniyal Transport",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
   appleWebApp: {
     capable: true,
-    title: "Transport Fee Manager",
+    title: "Daniyal Transport",
     statusBarStyle: "default",
   },
 };

@@ -4,7 +4,8 @@ import { SetupNotice } from "@/components/ui/SetupNotice";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { createClient } from "@/lib/supabase/server";
-import { currentMonthYear, formatMoney, monthNames } from "@/lib/utils/date";
+import { businessName } from "@/lib/daniyal-transport";
+import { clampMonth, currentMonthYear, formatMoney, formatMonthYear, safeYear } from "@/lib/utils/date";
 import { defaultReminderTemplate, renderReminder, whatsappLink } from "@/lib/whatsapp/reminder";
 
 export default async function MonthlyFeesPage({
@@ -16,8 +17,8 @@ export default async function MonthlyFeesPage({
   if (!supabase) return <main className="section"><SetupNotice /></main>;
   const params = await searchParams;
   const now = currentMonthYear();
-  const month = Number(params.month ?? now.month);
-  const year = Number(params.year ?? now.year);
+  const month = clampMonth(params.month ?? now.month);
+  const year = safeYear(params.year ?? now.year);
   const [{ data: fees }, { data: settings }] = await Promise.all([
     supabase
       .from("monthly_fee_records")
@@ -67,7 +68,7 @@ export default async function MonthlyFeesPage({
             year,
             amount: Number(fee.fee_amount),
             pending_amount: Math.max(pending, 0),
-            business_name: settings?.business_name ?? "Transport Fee Manager",
+            business_name: settings?.business_name ?? businessName,
             phone: customer?.whatsapp_number ?? customer?.phone ?? "",
           });
           return (
@@ -91,7 +92,7 @@ export default async function MonthlyFeesPage({
                   <SubmitButton className="btn btn-secondary w-full">Mark Paid</SubmitButton>
                 </form>
                 <a className="btn btn-primary" href={whatsappLink(customer?.whatsapp_number ?? customer?.phone ?? "", message)} target="_blank">WhatsApp Reminder</a>
-                <span className="btn btn-secondary">{monthNames[month - 1]} {year}</span>
+                <span className="btn btn-secondary">{formatMonthYear(month, year)}</span>
               </div>
             </article>
           );

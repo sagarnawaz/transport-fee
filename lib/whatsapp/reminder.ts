@@ -1,4 +1,4 @@
-import { monthNames } from "@/lib/utils/date";
+import { monthLabel } from "@/lib/utils/date";
 
 export type ReminderData = {
   customer_name: string;
@@ -18,7 +18,7 @@ export function renderReminder(template: string, data: ReminderData) {
   return template
     .replaceAll("{customer_name}", data.customer_name)
     .replaceAll("{customer_id}", data.customer_id)
-    .replaceAll("{month}", monthNames[data.month - 1] ?? String(data.month))
+    .replaceAll("{month}", monthLabel(data.month))
     .replaceAll("{year}", String(data.year))
     .replaceAll("{amount}", String(data.amount))
     .replaceAll("{pending_amount}", String(data.pending_amount))

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Clock3, Home, LogOut, Upload, type LucideIcon } from "lucide-react";
 import { logoutAction } from "@/app/actions";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 
 const links: { label: string; href: string; icon: LucideIcon }[] = [
   { label: "Home", href: "/customer", icon: Home },
@@ -23,9 +24,14 @@ export function CustomerNav() {
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="section py-3">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/customer" className="min-w-0">
-              <p className="truncate text-base font-bold text-slate-950">Transport Fee</p>
-              <p className="text-xs font-semibold text-emerald-800">Customer App</p>
+            <Link href="/customer" className="flex min-w-0 items-center gap-3">
+              <span className="w-16 shrink-0">
+                <BrandLogo />
+              </span>
+              <span className="min-w-0">
+              <p className="truncate text-base font-bold text-slate-950">Daniyal Transport</p>
+              <p className="text-xs font-semibold text-red-700">Customer App</p>
+              </span>
             </Link>
             <form action={logoutAction}>
               <button className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50" aria-label="Logout" type="submit">
@@ -41,7 +47,7 @@ export function CustomerNav() {
           return (
             <Link
               className={`grid min-h-12 place-items-center rounded-lg text-xs font-semibold ${
-                active ? "bg-emerald-50 text-emerald-800" : "text-slate-500"
+                active ? "bg-red-50 text-red-700" : "text-slate-500"
               }`}
               href={href}
               key={href}

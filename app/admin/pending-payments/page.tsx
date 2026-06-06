@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { createClient } from "@/lib/supabase/server";
-import { formatDisplayDate, formatMoney, monthNames } from "@/lib/utils/date";
+import { formatDisplayDate, formatMoney, formatMonthYear } from "@/lib/utils/date";
 
 export default async function PendingPaymentsPage() {
   const supabase = await createClient();
@@ -29,8 +29,8 @@ export default async function PendingPaymentsPage() {
   return (
     <main className="section">
       <div className="panel overflow-hidden">
-        <div className="bg-[#087b5b] p-5 text-white">
-          <p className="text-sm font-semibold text-emerald-50">Admin review</p>
+        <div className="bg-neutral-950 p-5 text-white">
+          <p className="text-sm font-semibold text-red-50">Admin review</p>
           <h1 className="mt-1 text-2xl font-bold">Pending Payments</h1>
         </div>
         <div className="grid grid-cols-2 gap-3 p-5">
@@ -59,13 +59,13 @@ export default async function PendingPaymentsPage() {
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{proof.customers?.customer_code ?? "Customer"}</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-red-700">{proof.customers?.customer_code ?? "Customer"}</p>
                     <h2 className="mt-1 truncate text-xl font-bold text-slate-950">{proof.customers?.full_name}</h2>
                     <p className="mt-1 text-sm text-slate-600">{proof.customers?.phone} - {rideType}</p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-xs font-semibold text-slate-500">Paid</p>
-                    <p className="text-2xl font-bold text-emerald-800">{formatMoney(proof.amount)}</p>
+                    <p className="text-2xl font-bold text-red-700">{formatMoney(proof.amount)}</p>
                   </div>
                 </div>
 
@@ -73,7 +73,7 @@ export default async function PendingPaymentsPage() {
                   <div className="rounded-lg bg-slate-50 p-3">
                     <p className="text-slate-500">Fee month</p>
                     <p className="font-bold text-slate-950">
-                      {fee ? `${monthNames[fee.month - 1]} ${fee.year}` : "-"}
+                      {fee ? formatMonthYear(fee.month, fee.year) : "-"}
                     </p>
                   </div>
                   <div className="rounded-lg bg-slate-50 p-3">

@@ -3,6 +3,9 @@
 :root {
   --background: #f7f8fb;
   --foreground: #17202a;
+  --brand: #b91c1c;
+  --brand-dark: #111111;
+  --brand-soft: #fef2f2;
 }
 
 @theme inline {
@@ -36,7 +39,7 @@ button, input, select, textarea {
   }
 
   .field {
-    @apply w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-3 text-base outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100;
+    @apply w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-3 text-base outline-none transition focus:border-red-700 focus:ring-2 focus:ring-red-100;
   }
 
   .label {
@@ -48,7 +51,7 @@ button, input, select, textarea {
   }
 
   .btn-primary {
-    @apply bg-emerald-700 text-white hover:bg-emerald-800;
+    @apply bg-red-700 text-white hover:bg-red-800;
   }
 
   .btn-secondary {

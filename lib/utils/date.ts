@@ -18,15 +18,40 @@ export function currentMonthYear() {
   return { month: now.getMonth() + 1, year: now.getFullYear() };
 }
 
+export function clampMonth(value?: number | string | null) {
+  const month = Number(value);
+  if (!Number.isFinite(month)) return currentMonthYear().month;
+  return Math.min(Math.max(Math.trunc(month), 1), 12);
+}
+
+export function safeYear(value?: number | string | null) {
+  const year = Number(value);
+  if (!Number.isFinite(year)) return currentMonthYear().year;
+  return Math.min(Math.max(Math.trunc(year), 2000), 2100);
+}
+
+export function monthLabel(month?: number | string | null) {
+  const index = clampMonth(month) - 1;
+  return monthNames[index] ?? "Unknown";
+}
+
+export function formatMonthYear(month?: number | string | null, year?: number | string | null) {
+  return `${monthLabel(month)} ${safeYear(year)}`;
+}
+
 export function makeDueDate(year: number, month: number, dueDay: number) {
-  const lastDay = new Date(year, month, 0).getDate();
-  const day = Math.min(Math.max(dueDay, 1), lastDay);
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const safeMonthValue = clampMonth(month);
+  const safeYearValue = safeYear(year);
+  const lastDay = new Date(safeYearValue, safeMonthValue, 0).getDate();
+  const safeDueDay = Number.isFinite(dueDay) ? Math.trunc(dueDay) : 1;
+  const day = Math.min(Math.max(safeDueDay, 1), lastDay);
+  return `${safeYearValue}-${String(safeMonthValue).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export function formatMoney(value?: number | string | null) {
   const amount = Number(value ?? 0);
-  return `Rs. ${amount.toLocaleString("en-PK", { maximumFractionDigits: 0 })}`;
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  return `Rs. ${safeAmount.toLocaleString("en-PK", { maximumFractionDigits: 0 })}`;
 }
 
 export function formatDisplayDate(value?: string | Date | null) {

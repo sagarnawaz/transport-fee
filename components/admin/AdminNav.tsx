@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CreditCard, Home, LogOut, Settings, Users, type LucideIcon } from "lucide-react";
 import { logoutAction } from "@/app/actions";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 
 const links: { label: string; href: string; icon: LucideIcon }[] = [
   { label: "Home", href: "/admin", icon: Home },
@@ -24,9 +25,14 @@ export function AdminNav() {
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="section py-3">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/admin" className="min-w-0">
-              <p className="truncate text-base font-bold text-slate-950">Transport Fee</p>
-              <p className="text-xs font-semibold text-emerald-800">Admin Panel</p>
+            <Link href="/admin" className="flex min-w-0 items-center gap-3">
+              <span className="w-16 shrink-0">
+                <BrandLogo />
+              </span>
+              <span className="min-w-0">
+              <p className="truncate text-base font-bold text-slate-950">Daniyal Transport</p>
+              <p className="text-xs font-semibold text-red-700">Admin Panel</p>
+              </span>
             </Link>
             <form action={logoutAction}>
               <button className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50" aria-label="Logout" type="submit">
@@ -40,7 +46,7 @@ export function AdminNav() {
               return (
                 <Link
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium whitespace-nowrap ${
-                    active ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-700"
+                    active ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-slate-50 text-slate-700"
                   }`}
                   href={href}
                   key={href}
@@ -59,7 +65,7 @@ export function AdminNav() {
           return (
             <Link
               className={`grid min-h-12 place-items-center rounded-lg text-[11px] font-semibold ${
-                active ? "bg-emerald-50 text-emerald-800" : "text-slate-500"
+                active ? "bg-red-50 text-red-700" : "text-slate-500"
               }`}
               href={href}
               key={href}

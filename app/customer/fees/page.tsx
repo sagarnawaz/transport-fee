@@ -2,7 +2,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getCurrentCustomer } from "@/lib/app-queries";
-import { formatDisplayDate, formatMoney, monthNames } from "@/lib/utils/date";
+import { formatDisplayDate, formatMoney, formatMonthYear } from "@/lib/utils/date";
 
 export default async function MyFeesPage() {
   const { supabase, customer } = await getCurrentCustomer();
@@ -20,7 +20,7 @@ export default async function MyFeesPage() {
           <article className="panel p-4" key={fee.id}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-bold">{monthNames[fee.month - 1]} {fee.year}</p>
+                <p className="font-bold">{formatMonthYear(fee.month, fee.year)}</p>
                 <p className="text-sm text-slate-600">Due {formatDisplayDate(fee.due_date)}</p>
               </div>
               <StatusBadge status={fee.status} />

@@ -37,7 +37,7 @@ export default async function ReportsPage() {
     ["Paid customers", rows.filter((row) => row.Status === "paid")],
     ["Unpaid customers", rows.filter((row) => row.Status === "unpaid" || row.Status === "rejected")],
     ["Pending verification payments", rows.filter((row) => row.Status === "pending_verification")],
-    ["Route-wise report", rows.sort((a, b) => String(a.Route).localeCompare(String(b.Route)))],
+    ["Route-wise report", [...rows].sort((a, b) => String(a.Route).localeCompare(String(b.Route)))],
   ];
 
   return (
@@ -48,13 +48,13 @@ export default async function ReportsPage() {
         {!rows.length ? <EmptyState title="No report data" text="Generate this month fees first." /> : null}
         {reports.map(([label, reportRows]) => (
           <a
-            className="panel p-4 transition hover:border-emerald-300"
+            className="panel p-4 transition hover:border-red-300"
             download={`${String(label).toLowerCase().replaceAll(" ", "-")}.csv`}
             href={downloadHref(toCsv(reportRows as Record<string, unknown>[]))}
             key={String(label)}
           >
             <p className="font-bold">{String(label)}</p>
-            <p className="mt-1 text-sm text-slate-600">{(reportRows as unknown[]).length} rows · tap to download</p>
+            <p className="mt-1 text-sm text-slate-600">{(reportRows as unknown[]).length} rows - tap to download</p>
           </a>
         ))}
       </div>

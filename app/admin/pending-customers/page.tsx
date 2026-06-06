@@ -21,7 +21,7 @@ export default async function PendingCustomersPage() {
           <article className="panel p-4" key={customer.id}>
             <div>
               <p className="text-lg font-bold">{customer.full_name}</p>
-              <p className="text-sm text-slate-600">{customer.phone} · WhatsApp {customer.whatsapp_number}</p>
+              <p className="text-sm text-slate-600">{customer.phone} - WhatsApp {customer.whatsapp_number}</p>
               <p className="mt-2 text-sm text-slate-600">{customer.pickup_address} to {customer.drop_address}</p>
               {customer.notes ? <p className="mt-1 text-sm text-slate-500">{customer.notes}</p> : null}
             </div>
@@ -32,7 +32,7 @@ export default async function PendingCustomersPage() {
                 <option value="">Route</option>
                 {routes?.map((route) => <option key={route.id} value={route.id}>{route.route_name}</option>)}
               </select>
-              <input className="field" name="monthly_fee" placeholder="Monthly fee" required type="number" />
+              <input className="field" min={0} name="monthly_fee" placeholder="Monthly fee" required type="number" />
               <input className="field" name="joining_date" type="date" />
               <input className="field" name="notes" placeholder="Notes" />
               <div className="sm:col-span-2 lg:col-span-5">
