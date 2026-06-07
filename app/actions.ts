@@ -82,6 +82,7 @@ export async function registerCustomerAction(formData: FormData) {
   const rideType = value(formData, "ride_type");
   const routeKey = value(formData, "route_key");
   const vanNumber = value(formData, "van_number");
+  const customerType = value(formData, "customer_type") === "existing" ? "existing" : "new";
   const allowedVans = routeKey === linkRoadRoute.id ? linkRoadRoute.vans : cliftonRoute.vans;
   const monthlyFee = calculateDaniyalFee({
     dropAddress,
@@ -153,12 +154,29 @@ export async function registerCustomerAction(formData: FormData) {
     p_ride_type: rideType,
     p_route_id: null,
     p_van_number: vanNumber,
+    p_customer_type: customerType,
   };
 
   let { error: profileError } = await supabase.rpc("register_customer_profile", profilePayload);
 
   if (profileError?.code === "PGRST202") {
-    const legacyProfilePayload: Omit<typeof profilePayload, "p_van_number"> = {
+    const payloadWithoutCustomerType: Omit<typeof profilePayload, "p_customer_type"> = {
+      p_user_id: profilePayload.p_user_id,
+      p_full_name: profilePayload.p_full_name,
+      p_phone: profilePayload.p_phone,
+      p_guardian_name: profilePayload.p_guardian_name,
+      p_pickup_address: profilePayload.p_pickup_address,
+      p_drop_address: profilePayload.p_drop_address,
+      p_ride_type: profilePayload.p_ride_type,
+      p_route_id: profilePayload.p_route_id,
+      p_van_number: profilePayload.p_van_number,
+    };
+    const retryWithVan = await supabase.rpc("register_customer_profile", payloadWithoutCustomerType);
+    profileError = retryWithVan.error;
+  }
+
+  if (profileError?.code === "PGRST202") {
+    const legacyProfilePayload: Omit<typeof profilePayload, "p_van_number" | "p_customer_type"> = {
       p_user_id: profilePayload.p_user_id,
       p_full_name: profilePayload.p_full_name,
       p_phone: profilePayload.p_phone,
@@ -440,6 +458,20 @@ export async function saveSettingsAction(formData: FormData) {
     default_due_day: Math.min(Math.max(asNumber(formData, "default_due_day", 10), 1), 28),
     pickup_locations: value(formData, "pickup_locations"),
     drop_locations: value(formData, "drop_locations"),
+    clifton_payment_instructions: value(formData, "clifton_payment_instructions"),
+    clifton_payment_method: value(formData, "clifton_payment_method"),
+    clifton_account_title: value(formData, "clifton_account_title"),
+    clifton_bank_name: value(formData, "clifton_bank_name"),
+    clifton_account_number: value(formData, "clifton_account_number"),
+    clifton_receipt_whatsapp: value(formData, "clifton_receipt_whatsapp"),
+    clifton_payment_note: value(formData, "clifton_payment_note"),
+    link_road_payment_instructions: value(formData, "link_road_payment_instructions"),
+    link_road_payment_method: value(formData, "link_road_payment_method"),
+    link_road_account_title: value(formData, "link_road_account_title"),
+    link_road_bank_name: value(formData, "link_road_bank_name"),
+    link_road_account_number: value(formData, "link_road_account_number"),
+    link_road_receipt_whatsapp: value(formData, "link_road_receipt_whatsapp"),
+    link_road_payment_note: value(formData, "link_road_payment_note"),
     whatsapp_reminder_template: value(formData, "whatsapp_reminder_template"),
     payment_instructions: value(formData, "payment_instructions"),
   });

@@ -48,6 +48,14 @@ export function makeDueDate(year: number, month: number, dueDay: number) {
   return `${safeYearValue}-${String(safeMonthValue).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+export function prorateMonthlyFee(value: number | string | null | undefined, date = new Date()) {
+  const monthlyFee = Number(value ?? 0);
+  if (!Number.isFinite(monthlyFee) || monthlyFee <= 0) return 0;
+  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const remainingDays = daysInMonth - date.getDate() + 1;
+  return Math.round((monthlyFee / daysInMonth) * remainingDays);
+}
+
 export function formatMoney(value?: number | string | null) {
   const amount = Number(value ?? 0);
   const safeAmount = Number.isFinite(amount) ? amount : 0;

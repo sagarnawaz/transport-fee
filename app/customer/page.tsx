@@ -3,7 +3,7 @@ import { CalendarDays, CreditCard, MapPin, ReceiptText } from "lucide-react";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { prettyStatus } from "@/components/ui/StatusBadge";
 import { getCurrentCustomer, getSettings } from "@/lib/app-queries";
-import { paymentInstructionsForDrop } from "@/lib/daniyal-transport";
+import { paymentInstructionsFromSettings } from "@/lib/daniyal-transport";
 import { currentMonthYear, formatDisplayDate, formatMoney, makeDueDate } from "@/lib/utils/date";
 
 export default async function CustomerDashboard() {
@@ -95,7 +95,7 @@ export default async function CustomerDashboard() {
           <div>
             <h2 className="text-base font-bold text-slate-950">Payment instructions</h2>
             <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
-              {customer ? paymentInstructionsForDrop(customer.drop_address) : settings?.payment_instructions ?? "Pay outside the system, then upload your screenshot and transaction ID."}
+              {customer ? paymentInstructionsFromSettings(settings, customer.drop_address) : settings?.payment_instructions ?? "Pay outside the system, then upload your screenshot and transaction ID."}
             </p>
           </div>
         </div>

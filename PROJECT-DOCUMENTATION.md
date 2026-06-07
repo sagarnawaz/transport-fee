@@ -267,6 +267,16 @@ Admin verification flow:
 
 Important rule: Customer upload never directly marks a fee as paid. Only admin approval can mark payment as paid or partial.
 
+## Route Payment Instructions
+
+Admin Settings supports route-wise payment instructions.
+
+- Admin can edit separate payment fields for each route: payment method, account title, bank/wallet name, account number, screenshot WhatsApp, and route notes.
+- Clifton route customers see the Clifton payment fields.
+- Link Road route customers see the Link Road payment fields.
+- The customer dashboard and submit-payment screen both generate payment instructions from these fields based on the customer's drop route.
+- The old combined `payment_instructions` and route instruction text fields remain as compatibility fallbacks.
+
 ## Monthly Fee List And Sharing Flow
 
 The Admin Customers screen is the main fee-status list for registered customers.
@@ -288,6 +298,18 @@ Each monthly fee record uses a fixed due day for that month. The default is the 
 - Admin-generated monthly fees also use the selected due day.
 - The due day is configurable from Admin Settings through `default_due_day`.
 - The customer dashboard falls back to the current month's configured due date if a fee record is missing.
+
+## First Month Billing Rule
+
+Registration includes a customer type selector so billing stays fair for both old and new customers.
+
+- `customers.monthly_fee` stores the normal full monthly fee.
+- If customer type is `new`, the first `monthly_fee_records.fee_amount` stores only the prorated amount from joining date through month end.
+- If customer type is `existing`, the first `monthly_fee_records.fee_amount` stores the full monthly fee.
+- For new customers, the joining day is included because service can start on that day.
+- New customer formula: `round(monthly_fee / days_in_month * remaining_days)`.
+- Example: if full fee is `Rs. 12,500`, June has `30` days, and customer joins on June 15, remaining days are `16`, so first month fee is about `Rs. 6,667`.
+- Next month onward, generated monthly fees use the full customer monthly fee.
 
 ## PWA Behavior
 

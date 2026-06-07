@@ -96,6 +96,38 @@ Shah Latif Town
 Port Qasim',
   drop_locations text not null default 'Clifton
 Ziauddin Link Road',
+  clifton_payment_instructions text not null default 'Payment for Clifton route
+Bank Title: Israr Muhammad
+Meezan Bank number: 1047 0109 2680 26
+Double side: Rs. 12,500
+Single side: Rs. 7,500
+Pay before the 10th and send receipt screenshot on WhatsApp: 0301-2589603.',
+  clifton_payment_method text not null default 'Bank Transfer',
+  clifton_account_title text not null default 'Israr Muhammad',
+  clifton_bank_name text not null default 'Meezan Bank',
+  clifton_account_number text not null default '1047 0109 2680 26',
+  clifton_receipt_whatsapp text not null default '0301-2589603',
+  clifton_payment_note text not null default 'Double side: Rs. 12,500
+Single side: Rs. 7,500
+Pay before the 10th.',
+  link_road_payment_instructions text not null default 'Payment for Link Road route
+Bank Title: Israr Muhammad
+Easy Paisa number: 0301-2589603
+AC Van
+Steel Town: Rs. 9,000
+Bhains Colony: Rs. 13,000
+Quaidabad: Rs. 15,000
+Note: Fees will be charged during the leave of the University.',
+  link_road_payment_method text not null default 'EasyPaisa',
+  link_road_account_title text not null default 'Israr Muhammad',
+  link_road_bank_name text not null default 'EasyPaisa',
+  link_road_account_number text not null default '0301-2589603',
+  link_road_receipt_whatsapp text not null default '0301-2589603',
+  link_road_payment_note text not null default 'AC Van
+Steel Town: Rs. 9,000
+Bhains Colony: Rs. 13,000
+Quaidabad: Rs. 15,000
+Fees will be charged during the leave of the University.',
   whatsapp_reminder_template text not null default 'Assalam o Alaikum {customer_name}, your transport fee for {month} {year} is pending. Amount: Rs. {pending_amount}. Customer ID: {customer_id}. Please make payment as soon as possible. Thank you.',
   payment_instructions text not null default 'Payment for Clifton route
 Bank Title: Israr Muhammad
@@ -124,6 +156,38 @@ create unique index if not exists customers_phone_unique on public.customers (ph
 alter table public.settings add column if not exists default_monthly_fee numeric not null default 12500;
 alter table public.settings add column if not exists pickup_locations text not null default 'Gulshan-e-Hadeed';
 alter table public.settings add column if not exists drop_locations text not null default 'Clifton';
+alter table public.settings add column if not exists clifton_payment_instructions text not null default 'Payment for Clifton route
+Bank Title: Israr Muhammad
+Meezan Bank number: 1047 0109 2680 26
+Double side: Rs. 12,500
+Single side: Rs. 7,500
+Pay before the 10th and send receipt screenshot on WhatsApp: 0301-2589603.';
+alter table public.settings add column if not exists clifton_payment_method text not null default 'Bank Transfer';
+alter table public.settings add column if not exists clifton_account_title text not null default 'Israr Muhammad';
+alter table public.settings add column if not exists clifton_bank_name text not null default 'Meezan Bank';
+alter table public.settings add column if not exists clifton_account_number text not null default '1047 0109 2680 26';
+alter table public.settings add column if not exists clifton_receipt_whatsapp text not null default '0301-2589603';
+alter table public.settings add column if not exists clifton_payment_note text not null default 'Double side: Rs. 12,500
+Single side: Rs. 7,500
+Pay before the 10th.';
+alter table public.settings add column if not exists link_road_payment_instructions text not null default 'Payment for Link Road route
+Bank Title: Israr Muhammad
+Easy Paisa number: 0301-2589603
+AC Van
+Steel Town: Rs. 9,000
+Bhains Colony: Rs. 13,000
+Quaidabad: Rs. 15,000
+Note: Fees will be charged during the leave of the University.';
+alter table public.settings add column if not exists link_road_payment_method text not null default 'EasyPaisa';
+alter table public.settings add column if not exists link_road_account_title text not null default 'Israr Muhammad';
+alter table public.settings add column if not exists link_road_bank_name text not null default 'EasyPaisa';
+alter table public.settings add column if not exists link_road_account_number text not null default '0301-2589603';
+alter table public.settings add column if not exists link_road_receipt_whatsapp text not null default '0301-2589603';
+alter table public.settings add column if not exists link_road_payment_note text not null default 'AC Van
+Steel Town: Rs. 9,000
+Bhains Colony: Rs. 13,000
+Quaidabad: Rs. 15,000
+Fees will be charged during the leave of the University.';
 
 insert into public.settings (business_name)
 select 'Daniyal Transport'
@@ -178,7 +242,8 @@ create or replace function public.register_customer_profile(
   p_drop_address text,
   p_ride_type text,
   p_route_id uuid,
-  p_van_number text default ''
+  p_van_number text default '',
+  p_customer_type text default 'new'
 )
 returns uuid
 language plpgsql
@@ -198,6 +263,10 @@ declare
   v_van_number text := nullif(trim(p_van_number), '');
   v_due_day int := 10;
   v_due_date date;
+  v_days_in_month int;
+  v_remaining_days int;
+  v_first_month_fee numeric := 0;
+  v_customer_type text := coalesce(nullif(trim(p_customer_type), ''), 'new');
 begin
   if auth.uid() is null or auth.uid() <> p_user_id then
     raise exception 'Unauthorized';
@@ -230,6 +299,10 @@ begin
     raise exception 'Invalid route fee';
   end if;
 
+  if v_customer_type not in ('new', 'existing') then
+    raise exception 'Invalid customer type';
+  end if;
+
   select coalesce(default_due_day, 10)
   into v_due_day
   from public.settings
@@ -238,6 +311,12 @@ begin
 
   v_due_day := least(greatest(coalesce(v_due_day, 10), 1), 28);
   v_due_date := make_date(v_year, v_month, v_due_day);
+  v_days_in_month := extract(day from (date_trunc('month', current_date)::date + interval '1 month - 1 day'))::int;
+  v_remaining_days := v_days_in_month - extract(day from current_date)::int + 1;
+  v_first_month_fee := case
+    when v_customer_type = 'existing' then v_customer_fee
+    else round((v_customer_fee / v_days_in_month) * v_remaining_days)
+  end;
   v_customer_code := 'CUS-' || lpad(nextval('public.customer_code_seq')::text, 5, '0');
 
   insert into public.profiles (id, role, full_name, phone, whatsapp_number)
@@ -276,12 +355,12 @@ begin
     v_customer_fee,
     'active',
     current_date,
-    'Auto registered - ' || v_route_note || coalesce(' - Van: ' || v_van_number, '')
+    'Auto registered - ' || v_route_note || coalesce(' - Van: ' || v_van_number, '') || ' - Type: ' || v_customer_type
   )
   returning id into v_customer_id;
 
   insert into public.monthly_fee_records (customer_id, month, year, fee_amount, paid_amount, status, due_date)
-  values (v_customer_id, v_month, v_year, v_customer_fee, 0, 'unpaid', v_due_date)
+  values (v_customer_id, v_month, v_year, v_first_month_fee, 0, 'unpaid', v_due_date)
   on conflict (customer_id, month, year) do nothing;
 
   return v_customer_id;

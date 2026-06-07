@@ -3,8 +3,8 @@ import { submitProofAction } from "@/app/actions";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { getCurrentCustomer } from "@/lib/app-queries";
-import { paymentInstructionsForDrop } from "@/lib/daniyal-transport";
+import { getCurrentCustomer, getSettings } from "@/lib/app-queries";
+import { paymentInstructionsFromSettings } from "@/lib/daniyal-transport";
 import { formatMoney, formatMonthYear } from "@/lib/utils/date";
 
 export default async function SubmitPaymentPage({
@@ -15,6 +15,7 @@ export default async function SubmitPaymentPage({
   const params = await searchParams;
   const { supabase, customer } = await getCurrentCustomer();
   if (!supabase) return <main className="section"><SetupNotice /></main>;
+  const settings = await getSettings();
   const { data: fees } = customer
     ? await supabase
         .from("monthly_fee_records")
@@ -84,7 +85,7 @@ export default async function SubmitPaymentPage({
             {customer ? (
               <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm leading-6 text-red-950">
                 <p className="font-bold">Route payment account</p>
-                <p className="mt-1 whitespace-pre-line">{paymentInstructionsForDrop(customer.drop_address)}</p>
+                <p className="mt-1 whitespace-pre-line">{paymentInstructionsFromSettings(settings, customer.drop_address)}</p>
               </div>
             ) : null}
 

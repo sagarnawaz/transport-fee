@@ -1,7 +1,26 @@
 import type { RideType } from "@/types/database";
+import type { Settings } from "@/types/database";
 
 export const businessName = "Daniyal Transport";
 export const receiptWhatsapp = "0301-2589603";
+
+export const defaultCliftonPayment = {
+  method: "Bank Transfer",
+  accountTitle: "Israr Muhammad",
+  bankName: "Meezan Bank",
+  accountNumber: "1047 0109 2680 26",
+  receiptWhatsapp,
+  note: "Double side: Rs. 12,500\nSingle side: Rs. 7,500\nPay before the 10th.",
+};
+
+export const defaultLinkRoadPayment = {
+  method: "EasyPaisa",
+  accountTitle: "Israr Muhammad",
+  bankName: "EasyPaisa",
+  accountNumber: "0301-2589603",
+  receiptWhatsapp,
+  note: "AC Van\nSteel Town: Rs. 9,000\nBhains Colony: Rs. 13,000\nQuaidabad: Rs. 15,000\nFees will be charged during the leave of the University.",
+};
 
 export const cliftonRoute = {
   id: "clifton",
@@ -118,3 +137,58 @@ export const defaultPaymentInstructions = [
   "",
   paymentInstructionsForDrop(linkRoadRoute.drop),
 ].join("\n");
+
+export function paymentInstructionsFromSettings(
+  settings: Partial<Settings> | null | undefined,
+  dropAddress: string | null | undefined,
+) {
+  if (dropAddress === linkRoadRoute.drop) {
+    return buildPaymentInstructions({
+      routeName: "Link Road route",
+      method: settings?.link_road_payment_method ?? defaultLinkRoadPayment.method,
+      accountTitle: settings?.link_road_account_title ?? defaultLinkRoadPayment.accountTitle,
+      bankName: settings?.link_road_bank_name ?? defaultLinkRoadPayment.bankName,
+      accountNumber: settings?.link_road_account_number ?? defaultLinkRoadPayment.accountNumber,
+      receiptWhatsapp: settings?.link_road_receipt_whatsapp ?? defaultLinkRoadPayment.receiptWhatsapp,
+      note: settings?.link_road_payment_note ?? settings?.link_road_payment_instructions ?? defaultLinkRoadPayment.note,
+    });
+  }
+
+  return buildPaymentInstructions({
+    routeName: "Clifton route",
+    method: settings?.clifton_payment_method ?? defaultCliftonPayment.method,
+    accountTitle: settings?.clifton_account_title ?? defaultCliftonPayment.accountTitle,
+    bankName: settings?.clifton_bank_name ?? defaultCliftonPayment.bankName,
+    accountNumber: settings?.clifton_account_number ?? defaultCliftonPayment.accountNumber,
+    receiptWhatsapp: settings?.clifton_receipt_whatsapp ?? defaultCliftonPayment.receiptWhatsapp,
+    note: settings?.clifton_payment_note ?? settings?.clifton_payment_instructions ?? defaultCliftonPayment.note,
+  });
+}
+
+function buildPaymentInstructions({
+  routeName,
+  method,
+  accountTitle,
+  bankName,
+  accountNumber,
+  receiptWhatsapp,
+  note,
+}: {
+  routeName: string;
+  method: string;
+  accountTitle: string;
+  bankName: string;
+  accountNumber: string;
+  receiptWhatsapp: string;
+  note: string;
+}) {
+  return [
+    `Payment for ${routeName}`,
+    `Method: ${method}`,
+    `Account title: ${accountTitle}`,
+    `Bank / Wallet: ${bankName}`,
+    `Account / Number: ${accountNumber}`,
+    receiptWhatsapp ? `Send screenshot on WhatsApp: ${receiptWhatsapp}` : "",
+    note,
+  ].filter(Boolean).join("\n");
+}

@@ -8,7 +8,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { calculateDaniyalFee, cliftonRoute, linkRoadRoute } from "@/lib/daniyal-transport";
-import { formatMoney } from "@/lib/utils/date";
+import { formatMoney, prorateMonthlyFee } from "@/lib/utils/date";
 import type { RideType } from "@/types/database";
 
 export function RegisterForm({
@@ -25,6 +25,7 @@ export function RegisterForm({
   const [routeId, setRouteId] = useState(cliftonRoute.id);
   const [pickupAddress, setPickupAddress] = useState(cliftonRoute.pickups[0]);
   const [rideType, setRideType] = useState<RideType>("both_side");
+  const [customerType, setCustomerType] = useState<"new" | "existing">("new");
   const passwordMismatch = Boolean(confirmPassword) && password !== confirmPassword;
   const selectedRoute = routeId === linkRoadRoute.id ? linkRoadRoute : cliftonRoute;
   const pickupOptions =
@@ -38,6 +39,8 @@ export function RegisterForm({
     pickupAddress,
     rideType: effectiveRideType,
   });
+  const firstMonthFee = prorateMonthlyFee(monthlyFee || fullFee);
+  const currentMonthFee = customerType === "existing" ? monthlyFee || fullFee : firstMonthFee;
 
   const errorMessage =
     error === "duplicate"
@@ -77,12 +80,18 @@ export function RegisterForm({
         Your customer ID and current month fee will be created automatically after registration.
       </p>
       <div className="mt-5 rounded-lg border border-red-100 bg-red-50 p-4">
-        <p className="text-xs font-bold uppercase text-red-700">Monthly fee</p>
-        <p className="mt-1 text-2xl font-bold text-slate-950">{formatMoney(monthlyFee || fullFee)}</p>
+        <p className="text-xs font-bold uppercase text-red-700">Current month fee</p>
+        <p className="mt-1 text-2xl font-bold text-slate-950">{formatMoney(currentMonthFee)}</p>
+        <p className="mt-1 text-sm font-semibold text-slate-700">Full monthly fee: {formatMoney(monthlyFee || fullFee)}</p>
         <p className="mt-1 text-sm text-red-900">
           {selectedRoute.id === cliftonRoute.id
             ? `Double side: ${formatMoney(fullFee)} | Single side: ${formatMoney(halfFee)}`
             : "Steel Town: Rs. 9,000 | Bhains Colony: Rs. 13,000 | Quaidabad: Rs. 15,000"}
+        </p>
+        <p className="mt-2 text-xs leading-5 text-red-900">
+          {customerType === "existing"
+            ? "Existing customers are charged the full monthly fee for the current month."
+            : "New customers are charged only for remaining days from registration date. Next month onward full monthly fee applies."}
         </p>
       </div>
       {errorMessage ? <p className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</p> : null}
@@ -92,6 +101,19 @@ export function RegisterForm({
           <input className="field" minLength={2} name="full_name" required />
         </label>
         <PhoneInput />
+        <label className="grid gap-2 sm:col-span-2">
+          <span className="label">Customer type</span>
+          <select
+            className="field"
+            name="customer_type"
+            onChange={(event) => setCustomerType(event.target.value === "existing" ? "existing" : "new")}
+            required
+            value={customerType}
+          >
+            <option value="new">New customer - charge remaining days only</option>
+            <option value="existing">Existing customer - charge full month</option>
+          </select>
+        </label>
         <label className="grid gap-2 sm:col-span-2">
           <span className="label">Service route</span>
           <select
