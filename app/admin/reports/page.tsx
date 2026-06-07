@@ -1,12 +1,8 @@
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
-import { toCsv } from "@/lib/csv/export";
+import { csvDownloadHref } from "@/lib/csv/export";
 import { createClient } from "@/lib/supabase/server";
-import { currentMonthYear } from "@/lib/utils/date";
-
-function downloadHref(csv: string) {
-  return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
-}
+import { currentMonthYear, formatDisplayDate, formatMonthYear } from "@/lib/utils/date";
 
 export default async function ReportsPage() {
   const supabase = await createClient();
@@ -27,15 +23,18 @@ export default async function ReportsPage() {
     "Monthly Fee": fee.customers?.monthly_fee ?? fee.fee_amount,
     Month: fee.month,
     Year: fee.year,
+    "Fee Month": formatMonthYear(fee.month, fee.year),
+    "Due Date": formatDisplayDate(fee.due_date),
     Status: fee.status,
     "Paid Amount": fee.paid_amount,
-    "Pending Amount": Number(fee.fee_amount) - Number(fee.paid_amount),
+    "Pending Amount": Math.max(Number(fee.fee_amount) - Number(fee.paid_amount), 0),
   }));
+  const unpaidRows = rows.filter((row) => Number(row["Pending Amount"]) > 0 && row.Status !== "paid");
 
   const reports = [
     ["All current month records", rows],
     ["Paid customers", rows.filter((row) => row.Status === "paid")],
-    ["Unpaid customers", rows.filter((row) => row.Status === "unpaid" || row.Status === "rejected")],
+    ["Unpaid customers", unpaidRows],
     ["Pending verification payments", rows.filter((row) => row.Status === "pending_verification")],
     ["Route-wise report", [...rows].sort((a, b) => String(a.Route).localeCompare(String(b.Route)))],
   ];
@@ -50,7 +49,7 @@ export default async function ReportsPage() {
           <a
             className="panel p-4 transition hover:border-red-300"
             download={`${String(label).toLowerCase().replaceAll(" ", "-")}.csv`}
-            href={downloadHref(toCsv(reportRows as Record<string, unknown>[]))}
+            href={csvDownloadHref(reportRows as Record<string, unknown>[])}
             key={String(label)}
           >
             <p className="font-bold">{String(label)}</p>

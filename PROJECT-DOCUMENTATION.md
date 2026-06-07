@@ -52,6 +52,8 @@ Admins can:
 - Approve or reject pending customer registrations.
 - Manage routes.
 - Generate monthly fee records.
+- View paid/unpaid status for all registered customers in the selected month.
+- Download unpaid customer CSV files that can be opened in Excel and shared in WhatsApp groups.
 - Verify or reject submitted payment proofs.
 - Export reports as CSV.
 - Update app settings and payment instructions.
@@ -264,6 +266,28 @@ Admin verification flow:
 6. Rejected proof marks the fee as `rejected`.
 
 Important rule: Customer upload never directly marks a fee as paid. Only admin approval can mark payment as paid or partial.
+
+## Monthly Fee List And Sharing Flow
+
+The Admin Customers screen is the main fee-status list for registered customers.
+
+- Admin first generates monthly fee records from the Monthly Fees screen.
+- Customers screen shows total registered, active, paid, unpaid, and unpaid amount for the current month.
+- The list shows customer ID, name, phone, due date, monthly fee, pending amount, joining date, and payment status.
+- Paid customers show `paid`; unpaid, partial, rejected, or pending-verification customers remain visible with pending amount.
+- Admin can download `Unpaid CSV / Excel` from the Customers screen for customers who still have pending amount.
+- Admin can share that CSV file in a WhatsApp group so everyone can see who has not paid yet.
+- Admin can also download the full fee list for record keeping.
+- The Monthly Fees screen is kept simple for mobile use: generate monthly fees, search/filter records, mark a customer paid, and send WhatsApp reminders.
+
+## Due Date Rule
+
+Each monthly fee record uses a fixed due day for that month. The default is the 10th day of the month.
+
+- When a customer registers, the first current-month fee record is created with due date set to the configured due day, such as `2026-06-10`.
+- Admin-generated monthly fees also use the selected due day.
+- The due day is configurable from Admin Settings through `default_due_day`.
+- The customer dashboard falls back to the current month's configured due date if a fee record is missing.
 
 ## PWA Behavior
 

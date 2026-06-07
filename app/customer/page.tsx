@@ -4,7 +4,7 @@ import { SetupNotice } from "@/components/ui/SetupNotice";
 import { prettyStatus } from "@/components/ui/StatusBadge";
 import { getCurrentCustomer, getSettings } from "@/lib/app-queries";
 import { paymentInstructionsForDrop } from "@/lib/daniyal-transport";
-import { currentMonthYear, formatDisplayDate, formatMoney } from "@/lib/utils/date";
+import { currentMonthYear, formatDisplayDate, formatMoney, makeDueDate } from "@/lib/utils/date";
 
 export default async function CustomerDashboard() {
   const { supabase, customer } = await getCurrentCustomer();
@@ -20,6 +20,7 @@ export default async function CustomerDashboard() {
   const paidPercent = feeAmount > 0 ? Math.min(Math.max((paidAmount / feeAmount) * 100, 0), 100) : 0;
   const rideType = customer?.ride_type === "one_side" ? "One side" : "Both side";
   const feeStatus = fee?.status ?? "unpaid";
+  const dueDate = fee?.due_date ?? makeDueDate(year, month, Number(settings?.default_due_day ?? 10));
 
   return (
     <main className="section">
@@ -70,7 +71,7 @@ export default async function CustomerDashboard() {
               <CalendarDays className="mt-0.5 text-red-700" size={18} />
               <div>
                 <p className="text-slate-500">Due date</p>
-                <p className="font-bold text-slate-950">{formatDisplayDate(fee?.due_date ?? customer?.joining_date)}</p>
+                <p className="font-bold text-slate-950">{formatDisplayDate(dueDate)}</p>
               </div>
             </div>
             <div className="col-span-2 flex gap-3">

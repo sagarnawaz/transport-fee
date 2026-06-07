@@ -268,7 +268,9 @@ export async function generateFeesAction(formData: FormData) {
   }
 
   revalidatePath("/admin/monthly-fees");
+  revalidatePath("/admin/customers");
   revalidatePath("/admin");
+  redirect(`/admin/monthly-fees?month=${month}&year=${year}`);
 }
 
 export async function markFeePaidAction(formData: FormData) {
@@ -279,13 +281,22 @@ export async function markFeePaidAction(formData: FormData) {
   if (!feeRecordId) return;
 
   const feeAmount = positiveNumber(formData, "fee_amount");
-  await supabase
+  const month = clampMonth(asNumber(formData, "month", new Date().getMonth() + 1));
+  const year = safeYear(asNumber(formData, "year", new Date().getFullYear()));
+  const { error } = await supabase
     .from("monthly_fee_records")
     .update({ paid_amount: feeAmount, status: "paid" })
     .eq("id", feeRecordId);
 
+  if (error) {
+    console.error("Mark fee paid failed", error);
+    redirect(`/admin/monthly-fees?month=${month}&year=${year}&error=mark-paid`);
+  }
+
   revalidatePath("/admin/monthly-fees");
+  revalidatePath("/admin/customers");
   revalidatePath("/admin");
+  redirect(`/admin/monthly-fees?month=${month}&year=${year}`);
 }
 
 export async function submitProofAction(formData: FormData) {

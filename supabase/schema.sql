@@ -196,6 +196,8 @@ declare
   v_pickup_address text := trim(p_pickup_address);
   v_route_note text := 'Clifton route';
   v_van_number text := nullif(trim(p_van_number), '');
+  v_due_day int := 10;
+  v_due_date date;
 begin
   if auth.uid() is null or auth.uid() <> p_user_id then
     raise exception 'Unauthorized';
@@ -228,6 +230,14 @@ begin
     raise exception 'Invalid route fee';
   end if;
 
+  select coalesce(default_due_day, 10)
+  into v_due_day
+  from public.settings
+  order by created_at
+  limit 1;
+
+  v_due_day := least(greatest(coalesce(v_due_day, 10), 1), 28);
+  v_due_date := make_date(v_year, v_month, v_due_day);
   v_customer_code := 'CUS-' || lpad(nextval('public.customer_code_seq')::text, 5, '0');
 
   insert into public.profiles (id, role, full_name, phone, whatsapp_number)
@@ -271,9 +281,14 @@ begin
   returning id into v_customer_id;
 
   insert into public.monthly_fee_records (customer_id, month, year, fee_amount, paid_amount, status, due_date)
-  values (v_customer_id, v_month, v_year, v_customer_fee, 0, 'unpaid', current_date)
+  values (v_customer_id, v_month, v_year, v_customer_fee, 0, 'unpaid', v_due_date)
   on conflict (customer_id, month, year) do nothing;
 
   return v_customer_id;
 end;
 $$;
+
+update public.monthly_fee_records
+set due_date = make_date(year, month, least(greatest(coalesce((select default_due_day from public.settings order by created_at limit 1), 10), 1), 28))
+where due_date is null
+   or due_date <> make_date(year, month, least(greatest(coalesce((select default_due_day from public.settings order by created_at limit 1), 10), 1), 28));
