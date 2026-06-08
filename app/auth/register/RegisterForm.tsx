@@ -200,6 +200,21 @@ export function RegisterForm({
             </label>
           </>
         )}
+        <label className="grid gap-2 sm:col-span-2">
+          <span className="label">Amount to pay now</span>
+          <input
+            aria-live="polite"
+            className="field border-red-200 bg-red-50 text-lg font-bold text-red-800"
+            readOnly
+            value={formatMoney(currentMonthFee)}
+          />
+          <span className="text-xs leading-5 text-slate-600">
+            Full monthly fee is {formatMoney(monthlyFee || fullFee)}.{" "}
+            {customerType === "existing"
+              ? "Existing customer selected, so this month uses the full fee."
+              : "New customer selected, so this month is charged for remaining days only."}
+          </span>
+        </label>
         <PasswordInput
           autoComplete="new-password"
           label="Password"

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { CalendarDays, CreditCard, MapPin, ReceiptText } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock3, CreditCard, MapPin, ReceiptText } from "lucide-react";
 import { SetupNotice } from "@/components/ui/SetupNotice";
-import { prettyStatus } from "@/components/ui/StatusBadge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getCurrentCustomer, getSettings } from "@/lib/app-queries";
 import { paymentInstructionsFromSettings } from "@/lib/daniyal-transport";
 import { currentMonthYear, formatDisplayDate, formatMoney, makeDueDate } from "@/lib/utils/date";
@@ -20,6 +20,10 @@ export default async function CustomerDashboard() {
   const paidPercent = feeAmount > 0 ? Math.min(Math.max((paidAmount / feeAmount) * 100, 0), 100) : 0;
   const rideType = customer?.ride_type === "one_side" ? "One side" : "Both side";
   const feeStatus = fee?.status ?? "unpaid";
+  const displayStatus = pending <= 0 && fee ? "paid" : feeStatus;
+  const isPaid = displayStatus === "paid";
+  const isPendingVerification = feeStatus === "pending_verification";
+  const canSubmitPayment = Boolean(fee && pending > 0 && !isPendingVerification && !isPaid);
   const dueDate = fee?.due_date ?? makeDueDate(year, month, Number(settings?.default_due_day ?? 10));
 
   return (
@@ -44,15 +48,20 @@ export default async function CustomerDashboard() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-slate-500">Amount due</p>
-              <p className="mt-1 text-4xl font-bold text-slate-950">{formatMoney(Math.max(pending, 0))}</p>
+              <p className={`mt-1 text-4xl font-bold ${isPaid ? "text-emerald-700" : "text-slate-950"}`}>
+                {formatMoney(Math.max(pending, 0))}
+              </p>
             </div>
-            <span className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-amber-100 px-4 text-sm font-bold text-amber-900">
-              {prettyStatus(feeStatus)}
-            </span>
+            <div className="shrink-0">
+              <StatusBadge status={displayStatus} />
+            </div>
           </div>
 
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-red-700" style={{ width: `${paidPercent}%` }} />
+            <div
+              className={`h-full rounded-full ${isPaid ? "bg-emerald-600" : isPendingVerification ? "bg-sky-600" : "bg-red-700"}`}
+              style={{ width: `${paidPercent}%` }}
+            />
           </div>
           <div className="mt-2 flex items-center justify-between text-xs font-semibold text-slate-500">
             <span>Paid {formatMoney(paidAmount)}</span>
@@ -85,7 +94,17 @@ export default async function CustomerDashboard() {
             </div>
           </div>
 
-          <Link className="btn btn-primary mt-5 w-full" href="/customer/submit-payment">Submit Payment</Link>
+          {canSubmitPayment ? (
+            <Link className="btn btn-primary mt-5 w-full" href="/customer/submit-payment">Submit Payment</Link>
+          ) : isPendingVerification ? (
+            <div className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-lg bg-sky-50 px-4 text-sm font-bold text-sky-800">
+              <Clock3 size={18} /> Payment submitted, verification pending
+            </div>
+          ) : isPaid ? (
+            <div className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-lg bg-emerald-50 px-4 text-sm font-bold text-emerald-800">
+              <CheckCircle2 size={18} /> Payment complete
+            </div>
+          ) : null}
         </div>
       </section>
 
