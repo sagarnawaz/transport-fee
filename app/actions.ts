@@ -301,6 +301,17 @@ export async function markFeePaidAction(formData: FormData) {
   const feeAmount = positiveNumber(formData, "fee_amount");
   const month = clampMonth(asNumber(formData, "month", new Date().getMonth() + 1));
   const year = safeYear(asNumber(formData, "year", new Date().getFullYear()));
+
+  const { data: fee } = await supabase
+    .from("monthly_fee_records")
+    .select("status")
+    .eq("id", feeRecordId)
+    .maybeSingle();
+
+  if (fee?.status === "unpaid") {
+    redirect(`/admin/monthly-fees?month=${month}&year=${year}&error=unpaid-mark-paid`);
+  }
+
   const { error } = await supabase
     .from("monthly_fee_records")
     .update({ paid_amount: feeAmount, status: "paid" })

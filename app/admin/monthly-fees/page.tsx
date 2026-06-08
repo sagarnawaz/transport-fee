@@ -50,6 +50,11 @@ export default async function MonthlyFeesPage({
           Payment could not be marked paid. Please check admin login and try again.
         </p>
       ) : null}
+      {params.error === "unpaid-mark-paid" ? (
+        <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+          Unpaid fees cannot be marked paid until a payment proof is submitted.
+        </p>
+      ) : null}
 
       <form action={generateFeesAction} className="panel mt-4 grid gap-3 p-4 sm:grid-cols-[1fr_1fr_1fr_auto]">
         <label className="grid gap-2">
@@ -88,6 +93,7 @@ export default async function MonthlyFeesPage({
           const customer = fee.customers;
           const pending = Math.max(Number(fee.fee_amount) - Number(fee.paid_amount), 0);
           const isPaid = fee.status === "paid" || pending <= 0;
+          const canMarkPaid = !isPaid && fee.status !== "unpaid";
           const message = renderReminder(settings?.whatsapp_reminder_template ?? defaultReminderTemplate, {
             customer_name: customer?.full_name ?? "Customer",
             customer_id: customer?.customer_code ?? "-",
@@ -130,8 +136,8 @@ export default async function MonthlyFeesPage({
                   <input name="fee_amount" type="hidden" value={fee.fee_amount} />
                   <input name="month" type="hidden" value={month} />
                   <input name="year" type="hidden" value={year} />
-                  <SubmitButton className="btn btn-primary w-full" disabled={isPaid}>
-                    {isPaid ? "Paid" : "Mark Paid"}
+                  <SubmitButton className="btn btn-primary w-full" disabled={!canMarkPaid}>
+                    {isPaid ? "Paid" : fee.status === "unpaid" ? "No Proof Yet" : "Mark Paid"}
                   </SubmitButton>
                 </form>
                 <a className="btn btn-secondary" href={whatsappLink(customer?.whatsapp_number ?? customer?.phone ?? "", message)} target="_blank">

@@ -1,5 +1,13 @@
-const CACHE_NAME = "transport-fee-manager-v2";
-const APP_SHELL = ["/", "/auth/login", "/auth/register", "/logo.png"];
+const CACHE_NAME = "transport-fee-manager-v3";
+const APP_SHELL = [
+  "/",
+  "/auth/login",
+  "/auth/register",
+  "/logo.png",
+  "/app-icon-192.png",
+  "/app-icon-512.png",
+  "/app-icon-maskable-512.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

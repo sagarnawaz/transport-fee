@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   applicationName: "Daniyal Transport",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+    icon: "/app-icon-512.png",
+    apple: "/app-icon-512.png",
   },
   appleWebApp: {
     capable: true,
