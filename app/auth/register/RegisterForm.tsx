@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { ChangeEvent } from "react";
+import { Check, ChevronDown } from "lucide-react";
 import { registerCustomerAction } from "@/app/actions";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { BrandLogo } from "@/components/ui/BrandLogo";
@@ -12,6 +13,15 @@ import { formatMoney, prorateMonthlyFee } from "@/lib/utils/date";
 import type { RideType } from "@/types/database";
 
 const steps = ["Account", "Ride", "Review"] as const;
+const customerTypeOptions = [
+  { value: "new", label: "New customer - charge remaining days only" },
+  { value: "existing", label: "Existing customer - charge full month" },
+];
+
+type SelectOption = {
+  value: string;
+  label: string;
+};
 
 export function RegisterForm({
   error,
@@ -197,31 +207,26 @@ export function RegisterForm({
         </section>
 
         <section className={step === 1 ? "grid items-start gap-5 sm:grid-cols-2" : "hidden"} data-register-step="1">
-          <label className="grid gap-2 sm:col-span-2">
-            <span className="label">Customer type</span>
-            <select
-              className="field"
+          <div className="sm:col-span-2">
+            <ModernSelect
+              label="Customer type"
               name="customer_type"
-              onChange={(event) => setCustomerType(event.target.value === "existing" ? "existing" : "new")}
-              required
+              onChange={(value) => setCustomerType(value === "existing" ? "existing" : "new")}
+              options={customerTypeOptions}
               value={customerType}
-            >
-              <option value="new">New customer - charge remaining days only</option>
-              <option value="existing">Existing customer - charge full month</option>
-            </select>
-          </label>
-          <label className="grid gap-2 sm:col-span-2">
-            <span className="label">Service route</span>
-            <select
-              className="field"
+            />
+          </div>
+          <div className="grid gap-2 sm:col-span-2">
+            <ModernSelect
+              label="Service route"
               name="route_key"
-              onChange={(event) => handleRouteChange(event.target.value)}
-              required
+              onChange={handleRouteChange}
+              options={[
+                { value: cliftonRoute.id, label: cliftonRoute.name },
+                { value: linkRoadRoute.id, label: linkRoadRoute.name },
+              ]}
               value={routeId}
-            >
-              <option value={cliftonRoute.id}>{cliftonRoute.name}</option>
-              <option value={linkRoadRoute.id}>{linkRoadRoute.name}</option>
-            </select>
+            />
             <span className="text-xs font-bold leading-5 text-red-700">
               Amount to pay now: {formatMoney(currentMonthFee)}
             </span>
@@ -230,56 +235,48 @@ export function RegisterForm({
                 This route has a fixed single-route fee. Single side / double side selection is not needed.
               </span>
             ) : null}
-          </label>
-          <label className="grid gap-2">
-            <span className="label">Pickup location</span>
-            <select
-              className="field"
-              name="pickup_address"
-              onChange={(event) => setPickupAddress(event.target.value)}
-              required
-              value={pickupAddress}
-            >
-              {pickupOptions.map((location) => (
-                <option key={location}>{location}</option>
-              ))}
-            </select>
-          </label>
+          </div>
+          <ModernSelect
+            label="Pickup location"
+            name="pickup_address"
+            onChange={setPickupAddress}
+            options={pickupOptions.map((location) => ({ value: location, label: location }))}
+            value={pickupAddress}
+          />
           <div className="grid gap-2">
             <span className="label">Destination</span>
             <div className="field flex items-center bg-slate-50 text-slate-700">{selectedRoute.drop}</div>
             <input name="drop_address" type="hidden" value={selectedRoute.drop} />
           </div>
           {selectedRoute.id === cliftonRoute.id ? (
-            <label className="grid gap-2">
-              <span className="label">Fee type</span>
-              <select
-                className="field"
-                name="ride_type"
-                onChange={(event) => setRideType(event.target.value as RideType)}
-                required
-                value={rideType}
-              >
-                <option value="both_side">Double side - {formatMoney(fullFee)}</option>
-                <option value="one_side">Single side - {formatMoney(halfFee)}</option>
-              </select>
-            </label>
+            <ModernSelect
+              label="Fee type"
+              name="ride_type"
+              onChange={(value) => setRideType(value as RideType)}
+              options={[
+                { value: "both_side", label: `Double side - ${formatMoney(fullFee)}` },
+                { value: "one_side", label: `Single side - ${formatMoney(halfFee)}` },
+              ]}
+              value={rideType}
+            />
           ) : (
             <input name="ride_type" type="hidden" value="both_side" />
           )}
-          <label className={`grid gap-2 ${selectedRoute.id === linkRoadRoute.id ? "sm:col-span-2" : ""}`}>
+          <div className={`grid gap-2 ${selectedRoute.id === linkRoadRoute.id ? "sm:col-span-2" : ""}`}>
             <span className="flex flex-wrap items-center justify-between gap-2">
               <span className="label">Van</span>
               <a className="text-xs font-semibold text-red-700 underline" href={timingHref} rel="noreferrer" target="_blank">
                 Click here to see van timings
               </a>
             </span>
-            <select className="field" name="van_number" onChange={(event) => setVanNumber(event.target.value)} required value={vanNumber}>
-              {selectedRoute.vans.map((van) => (
-                <option key={van}>{van}</option>
-              ))}
-            </select>
-          </label>
+            <ModernSelect
+              label=""
+              name="van_number"
+              onChange={setVanNumber}
+              options={selectedRoute.vans.map((van) => ({ value: van, label: van }))}
+              value={vanNumber}
+            />
+          </div>
           <label className="grid gap-2 sm:col-span-2">
             <span className="label">Amount to pay now</span>
             <input
@@ -341,6 +338,77 @@ function ReviewItem({ label, value, strong = false }: { label: string; value: st
     <div className="min-w-0">
       <p className="text-xs font-bold uppercase text-slate-500">{label}</p>
       <p className={`mt-1 break-words text-sm ${strong ? "font-bold text-red-800" : "font-semibold text-slate-950"}`}>{value}</p>
+    </div>
+  );
+}
+
+function ModernSelect({
+  label,
+  name,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value) ?? options[0];
+
+  return (
+    <div
+      className="relative grid gap-2"
+      onBlur={(event) => {
+        const nextTarget = event.relatedTarget as Node | null;
+        if (!nextTarget || !event.currentTarget.contains(nextTarget)) setOpen(false);
+      }}
+    >
+      {label ? <span className="label">{label}</span> : null}
+      <input name={name} type="hidden" value={value} />
+      <button
+        aria-expanded={open}
+        className="field flex min-h-12 items-center justify-between gap-3 text-left"
+        onClick={() => setOpen((current) => !current)}
+        type="button"
+      >
+        <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{selected?.label ?? "Select"}</span>
+        <ChevronDown
+          aria-hidden="true"
+          className={`shrink-0 text-slate-500 transition duration-200 ${open ? "rotate-180 text-red-700" : ""}`}
+          size={18}
+        />
+      </button>
+      <div
+        className={`absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg transition-all duration-200 ${
+          open ? "max-h-64 scale-100 opacity-100" : "pointer-events-none max-h-0 scale-95 opacity-0"
+        }`}
+      >
+        <div className="max-h-64 overflow-y-auto p-1">
+          {options.map((option) => {
+            const selectedOption = option.value === value;
+
+            return (
+              <button
+                className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-3 text-left text-sm transition ${
+                  selectedOption ? "bg-red-50 font-bold text-red-800" : "text-slate-800 hover:bg-slate-50"
+                }`}
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                type="button"
+              >
+                <span className="min-w-0 break-words">{option.label}</span>
+                {selectedOption ? <Check aria-hidden="true" className="shrink-0" size={16} /> : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
