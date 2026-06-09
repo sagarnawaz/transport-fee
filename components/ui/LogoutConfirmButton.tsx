@@ -20,12 +20,16 @@ export function LogoutConfirmButton() {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <div className="panel w-full max-w-sm overflow-hidden">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4">
-              <div>
-                <p className="text-base font-bold text-slate-950">Logout?</p>
-                <p className="mt-1 text-sm text-slate-600">You will need to login again to continue.</p>
+        <div
+          className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="panel w-full max-w-[22rem] overflow-hidden shadow-xl">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-5">
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-6 text-slate-950">Logout?</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">You will return to the login screen.</p>
               </div>
               <button
                 aria-label="Cancel logout"
@@ -36,12 +40,12 @@ export function LogoutConfirmButton() {
                 <X size={18} />
               </button>
             </div>
-            <div className="grid gap-2 p-4 sm:grid-cols-2">
-              <button className="btn btn-secondary w-full" onClick={() => setOpen(false)} type="button">
+            <div className="grid gap-3 p-5 sm:grid-cols-2">
+              <button className="btn btn-secondary min-h-12 w-full" onClick={() => setOpen(false)} type="button">
                 Cancel
               </button>
               <form action={logoutAction}>
-                <SubmitButton className="btn btn-danger w-full" pendingText="Logging out...">
+                <SubmitButton className="btn btn-danger min-h-12 w-full" pendingText="Logging out...">
                   <LogOut size={18} /> Logout
                 </SubmitButton>
               </form>
