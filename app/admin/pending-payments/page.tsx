@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { createClient } from "@/lib/supabase/server";
-import { formatDisplayDate, formatMoney, formatMonthYear } from "@/lib/utils/date";
+import { formatDisplayDate, formatDisplayDateTime, formatMoney, formatMonthYear } from "@/lib/utils/date";
 
 export default async function PendingPaymentsPage() {
   const supabase = await createClient();
@@ -88,14 +88,20 @@ export default async function PendingPaymentsPage() {
                     <p className="text-slate-500">Date</p>
                     <p className="font-bold text-slate-950">{formatDisplayDate(proof.payment_date)}</p>
                   </div>
+                  <div className="col-span-2 rounded-lg bg-slate-50 p-3">
+                    <p className="text-slate-500">Submitted date & time</p>
+                    <p className="font-bold text-slate-950">{formatDisplayDateTime(proof.submitted_at)}</p>
+                  </div>
                 </div>
 
-                <div className="mt-4 rounded-lg border border-slate-200 p-3 text-sm">
-                  <div className="flex items-center gap-2 font-semibold text-slate-800">
-                    <ReceiptText size={17} /> Reference
+                {proof.transaction_id ? (
+                  <div className="mt-4 rounded-lg border border-slate-200 p-3 text-sm">
+                    <div className="flex items-center gap-2 font-semibold text-slate-800">
+                      <ReceiptText size={17} /> Reference
+                    </div>
+                    <p className="mt-1 break-words text-slate-600">{proof.transaction_id}</p>
                   </div>
-                  <p className="mt-1 break-words text-slate-600">{proof.transaction_id || "No reference provided"}</p>
-                </div>
+                ) : null}
 
                 {proof.signedUrl ? (
                   <ScreenshotPreview url={proof.signedUrl} />

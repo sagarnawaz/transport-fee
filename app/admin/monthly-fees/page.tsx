@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { createClient } from "@/lib/supabase/server";
 import { businessName } from "@/lib/daniyal-transport";
-import { clampMonth, currentMonthYear, formatDisplayDate, formatMoney, formatMonthYear, safeYear } from "@/lib/utils/date";
+import { clampMonth, currentMonthYear, formatDisplayDate, formatDisplayDateTime, formatMoney, formatMonthYear, safeYear } from "@/lib/utils/date";
 import { defaultReminderTemplate, renderReminder, whatsappLink } from "@/lib/whatsapp/reminder";
 import { FeeFilters } from "./FeeFilters";
 import { RejectPaymentForm } from "./RejectPaymentForm";
@@ -19,6 +19,7 @@ type FeePaymentProof = {
   payment_date: string | null;
   screenshot_path: string | null;
   status: string;
+  submitted_at: string | null;
   transaction_id: string | null;
 };
 
@@ -76,24 +77,24 @@ export default async function MonthlyFeesPage({
         </p>
       </div>
 
-      <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="panel p-4">
-          <p className="text-sm text-slate-500">Fee records</p>
-          <p className="mt-1 text-2xl font-bold text-slate-950">{filtered.length}</p>
+      <section className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+        <div className="panel p-3 sm:p-4">
+          <p className="text-xs font-semibold text-slate-500 sm:text-sm">Fee records</p>
+          <p className="mt-1 text-xl font-bold text-slate-950 sm:text-2xl">{filtered.length}</p>
         </div>
-        <div className="panel p-4">
-          <p className="text-sm text-slate-500">Need review</p>
-          <p className="mt-1 text-2xl font-bold text-sky-700">{pendingProofCount}</p>
+        <div className="panel p-3 sm:p-4">
+          <p className="text-xs font-semibold text-slate-500 sm:text-sm">Need review</p>
+          <p className="mt-1 text-xl font-bold text-sky-700 sm:text-2xl">{pendingProofCount}</p>
         </div>
-        <div className="panel p-4">
-          <p className="text-sm text-slate-500">Paid</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-700">
+        <div className="panel p-3 sm:p-4">
+          <p className="text-xs font-semibold text-slate-500 sm:text-sm">Paid</p>
+          <p className="mt-1 text-xl font-bold text-emerald-700 sm:text-2xl">
             {filtered.filter((fee) => fee.status === "paid").length}
           </p>
         </div>
-        <div className="panel p-4">
-          <p className="text-sm text-slate-500">Unpaid</p>
-          <p className="mt-1 text-2xl font-bold text-red-700">
+        <div className="panel p-3 sm:p-4">
+          <p className="text-xs font-semibold text-slate-500 sm:text-sm">Unpaid</p>
+          <p className="mt-1 text-xl font-bold text-red-700 sm:text-2xl">
             {filtered.filter((fee) => ["unpaid", "partial", "rejected"].includes(fee.status)).length}
           </p>
         </div>
@@ -219,7 +220,7 @@ export default async function MonthlyFeesPage({
                       <div className="rounded-lg border border-sky-200 bg-white p-3 shadow-sm" key={proof.id}>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
-                            <p className="text-slate-500">Submitted</p>
+                            <p className="text-slate-500">Amount</p>
                             <p className="font-bold text-slate-950">{formatMoney(proof.amount)}</p>
                           </div>
                           <div>
@@ -235,9 +236,15 @@ export default async function MonthlyFeesPage({
                             <p className="font-semibold text-slate-950">{formatDisplayDate(proof.payment_date)}</p>
                           </div>
                         </div>
-                        <p className="mt-3 break-words rounded-lg bg-white p-3 text-sm text-slate-700">
-                          Reference: {proof.transaction_id || "No reference provided"}
-                        </p>
+                        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                          <p className="text-slate-500">Submitted date & time</p>
+                          <p className="mt-1 font-bold text-slate-950">{formatDisplayDateTime(proof.submitted_at)}</p>
+                        </div>
+                        {proof.transaction_id ? (
+                          <p className="mt-3 break-words rounded-lg bg-white p-3 text-sm text-slate-700">
+                            Reference: {proof.transaction_id}
+                          </p>
+                        ) : null}
                         {signedUrl ? (
                           <ScreenshotPreview url={signedUrl} />
                         ) : proof.payment_method === "Cash" ? (

@@ -41,15 +41,17 @@ export function FeeFilters({
   }, [month, router, search, selectedStatus, year]);
 
   return (
-    <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_3fr]">
-      <ModernSelect
-        name="status"
-        onChange={setSelectedStatus}
-        options={statusOptions}
-        value={selectedStatus}
-      />
+    <div className="mt-4 grid grid-cols-[minmax(116px,0.42fr)_1fr] gap-2 sm:grid-cols-[1fr_3fr] sm:gap-3">
+      <div className="min-w-0">
+        <ModernSelect
+          name="status"
+          onChange={setSelectedStatus}
+          options={statusOptions}
+          value={selectedStatus}
+        />
+      </div>
       <input
-        className="field"
+        className="field min-w-0"
         onChange={(event) => setSearch(event.target.value)}
         placeholder="Search name, phone, ID"
         type="search"

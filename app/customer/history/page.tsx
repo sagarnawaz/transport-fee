@@ -2,7 +2,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getCurrentCustomer } from "@/lib/app-queries";
-import { formatMoney } from "@/lib/utils/date";
+import { formatDisplayDateTime, formatMoney } from "@/lib/utils/date";
 
 export default async function PaymentHistoryPage() {
   const { supabase, customer } = await getCurrentCustomer();
@@ -27,6 +27,9 @@ export default async function PaymentHistoryPage() {
                 <p className="font-bold text-slate-950">{formatMoney(proof.amount)}</p>
                 <p className="text-sm text-slate-600">
                   {proof.monthly_fee_records?.month}/{proof.monthly_fee_records?.year} - {proof.payment_method}
+                </p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">
+                  Submitted {formatDisplayDateTime(proof.submitted_at)}
                 </p>
               </div>
               <div className="justify-self-start"><StatusBadge status={proof.status} /></div>
