@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { ChangeEvent } from "react";
 import { registerCustomerAction } from "@/app/actions";
 import { PasswordInput } from "@/components/ui/PasswordInput";
-import { PhoneInput } from "@/components/ui/PhoneInput";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { calculateDaniyalFee, cliftonRoute, linkRoadRoute } from "@/lib/daniyal-transport";
 import { formatMoney, prorateMonthlyFee } from "@/lib/utils/date";
 import type { RideType } from "@/types/database";
+
+const steps = ["Account", "Ride", "Review"] as const;
 
 export function RegisterForm({
   error,
@@ -20,12 +22,16 @@ export function RegisterForm({
   fullFee: number;
   halfFee: number;
 }) {
+  const [step, setStep] = useState(0);
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [routeId, setRouteId] = useState(cliftonRoute.id);
   const [pickupAddress, setPickupAddress] = useState(cliftonRoute.pickups[0]);
   const [rideType, setRideType] = useState<RideType>("both_side");
-  const [customerType, setCustomerType] = useState<"new" | "existing">("new");
+  const [customerType, setCustomerType] = useState<"new" | "existing">("existing");
+  const [vanNumber, setVanNumber] = useState(cliftonRoute.vans[0]);
   const passwordMismatch = Boolean(confirmPassword) && password !== confirmPassword;
   const selectedRoute = routeId === linkRoadRoute.id ? linkRoadRoute : cliftonRoute;
   const pickupOptions =
@@ -41,6 +47,37 @@ export function RegisterForm({
   });
   const firstMonthFee = prorateMonthlyFee(monthlyFee || fullFee);
   const currentMonthFee = customerType === "existing" ? monthlyFee || fullFee : firstMonthFee;
+  const customerTypeLabel = customerType === "existing" ? "Existing customer" : "New customer";
+  const rideTypeLabel = effectiveRideType === "one_side" ? "Single side" : "Double side";
+
+  function validateStep(nextStep: number) {
+    const currentStep = document.querySelector<HTMLElement>(`[data-register-step="${step}"]`);
+    const fields = Array.from(
+      currentStep?.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select") ?? [],
+    );
+    const invalid = fields.find((field) => !field.checkValidity());
+
+    if (invalid) {
+      invalid.reportValidity();
+      return;
+    }
+
+    if (step === 0 && passwordMismatch) return;
+    setStep(nextStep);
+  }
+
+  function handleRouteChange(routeKey: string) {
+    const nextRoute = routeKey === linkRoadRoute.id ? linkRoadRoute : cliftonRoute;
+    setRouteId(routeKey);
+    setPickupAddress(nextRoute.pickups[0]);
+    setVanNumber(nextRoute.vans[0]);
+    if (nextRoute.id === linkRoadRoute.id) setRideType("both_side");
+  }
+
+  function handlePhoneChange(event: ChangeEvent<HTMLInputElement>) {
+    const nextPhone = event.currentTarget.value.replace(/\D/g, "").slice(0, 11);
+    setPhone(nextPhone);
+  }
 
   const errorMessage =
     error === "duplicate"
@@ -95,66 +132,125 @@ export function RegisterForm({
         </p>
       </div>
       {errorMessage ? <p className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</p> : null}
-      <form action={registerCustomerAction} className="mt-6 grid items-start gap-5 sm:grid-cols-2">
-        <label className="grid gap-2">
-          <span className="label">Full name</span>
-          <input className="field" minLength={2} name="full_name" required />
-        </label>
-        <PhoneInput />
-        <label className="grid gap-2 sm:col-span-2">
-          <span className="label">Customer type</span>
-          <select
-            className="field"
-            name="customer_type"
-            onChange={(event) => setCustomerType(event.target.value === "existing" ? "existing" : "new")}
-            required
-            value={customerType}
+      <div className="mt-5 grid grid-cols-3 gap-2" aria-label="Registration progress">
+        {steps.map((label, index) => (
+          <button
+            className={`rounded-lg border px-2 py-2 text-xs font-bold ${
+              index === step
+                ? "border-red-700 bg-red-700 text-white"
+                : index < step
+                  ? "border-red-200 bg-red-50 text-red-800"
+                  : "border-slate-200 bg-white text-slate-500"
+            }`}
+            key={label}
+            onClick={() => (index < step ? setStep(index) : undefined)}
+            type="button"
           >
-            <option value="new">New customer - charge remaining days only</option>
-            <option value="existing">Existing customer - charge full month</option>
-          </select>
-        </label>
-        <label className="grid gap-2 sm:col-span-2">
-          <span className="label">Service route</span>
-          <select
-            className="field"
-            name="route_key"
-            onChange={(event) => {
-              const nextRouteId = event.target.value;
-              const nextRoute = nextRouteId === linkRoadRoute.id ? linkRoadRoute : cliftonRoute;
-              const nextPickups = nextRoute.pickups;
-              setRouteId(nextRouteId);
-              setPickupAddress(nextPickups[0]);
-              if (nextRoute.id === linkRoadRoute.id) setRideType("both_side");
-            }}
-            required
-            value={routeId}
-          >
-            <option value={cliftonRoute.id}>{cliftonRoute.name}</option>
-            <option value={linkRoadRoute.id}>{linkRoadRoute.name}</option>
-          </select>
-        </label>
-        <label className="grid gap-2">
-          <span className="label">Pickup location</span>
-          <select
-            className="field"
-            name="pickup_address"
-            onChange={(event) => setPickupAddress(event.target.value)}
-            required
-            value={pickupAddress}
-          >
-            {pickupOptions.map((location) => (
-              <option key={location}>{location}</option>
-            ))}
-          </select>
-        </label>
-        <div className="grid gap-2">
-          <span className="label">Destination</span>
-          <div className="field flex items-center bg-slate-50 text-slate-700">{selectedRoute.drop}</div>
-          <input name="drop_address" type="hidden" value={selectedRoute.drop} />
-        </div>
-        {selectedRoute.id === cliftonRoute.id ? (
-          <>
+            {index + 1}. {label}
+          </button>
+        ))}
+      </div>
+      <form action={registerCustomerAction} className="mt-6">
+        <section className={step === 0 ? "grid items-start gap-5 sm:grid-cols-2" : "hidden"} data-register-step="0">
+          <label className="grid gap-2">
+            <span className="label">Full name</span>
+            <input className="field" minLength={2} name="full_name" onChange={(event) => setFullName(event.target.value)} required value={fullName} />
+          </label>
+          <label className="grid gap-2">
+            <span className="label">Phone number</span>
+            <input
+              autoComplete="tel"
+              className="field"
+              inputMode="numeric"
+              maxLength={11}
+              name="phone"
+              onChange={handlePhoneChange}
+              pattern="03[0-9]{9}"
+              placeholder="03xxxxxxxxx"
+              required
+              type="text"
+              value={phone}
+            />
+          </label>
+          <PasswordInput
+            autoComplete="new-password"
+            label="Password"
+            minLength={6}
+            name="password"
+            onValueChange={setPassword}
+          />
+          <PasswordInput
+            autoComplete="new-password"
+            label="Confirm password"
+            minLength={6}
+            name="confirm_password"
+            onValueChange={setConfirmPassword}
+          />
+          <div className="sm:col-span-2">
+            {passwordMismatch ? (
+              <p className="mb-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">Password and confirm password do not match.</p>
+            ) : null}
+            <button className="btn btn-primary w-full" disabled={passwordMismatch} onClick={() => validateStep(1)} type="button">
+              Continue
+            </button>
+          </div>
+        </section>
+
+        <section className={step === 1 ? "grid items-start gap-5 sm:grid-cols-2" : "hidden"} data-register-step="1">
+          <label className="grid gap-2 sm:col-span-2">
+            <span className="label">Customer type</span>
+            <select
+              className="field"
+              name="customer_type"
+              onChange={(event) => setCustomerType(event.target.value === "existing" ? "existing" : "new")}
+              required
+              value={customerType}
+            >
+              <option value="new">New customer - charge remaining days only</option>
+              <option value="existing">Existing customer - charge full month</option>
+            </select>
+          </label>
+          <label className="grid gap-2 sm:col-span-2">
+            <span className="label">Service route</span>
+            <select
+              className="field"
+              name="route_key"
+              onChange={(event) => handleRouteChange(event.target.value)}
+              required
+              value={routeId}
+            >
+              <option value={cliftonRoute.id}>{cliftonRoute.name}</option>
+              <option value={linkRoadRoute.id}>{linkRoadRoute.name}</option>
+            </select>
+            <span className="text-xs font-bold leading-5 text-red-700">
+              Amount to pay now: {formatMoney(currentMonthFee)}
+            </span>
+            {selectedRoute.id === linkRoadRoute.id ? (
+              <span className="text-xs font-semibold leading-5 text-slate-600">
+                This route has a fixed single-route fee. Single side / double side selection is not needed.
+              </span>
+            ) : null}
+          </label>
+          <label className="grid gap-2">
+            <span className="label">Pickup location</span>
+            <select
+              className="field"
+              name="pickup_address"
+              onChange={(event) => setPickupAddress(event.target.value)}
+              required
+              value={pickupAddress}
+            >
+              {pickupOptions.map((location) => (
+                <option key={location}>{location}</option>
+              ))}
+            </select>
+          </label>
+          <div className="grid gap-2">
+            <span className="label">Destination</span>
+            <div className="field flex items-center bg-slate-50 text-slate-700">{selectedRoute.drop}</div>
+            <input name="drop_address" type="hidden" value={selectedRoute.drop} />
+          </div>
+          {selectedRoute.id === cliftonRoute.id ? (
             <label className="grid gap-2">
               <span className="label">Fee type</span>
               <select
@@ -168,77 +264,83 @@ export function RegisterForm({
                 <option value="one_side">Single side - {formatMoney(halfFee)}</option>
               </select>
             </label>
-            <label className="grid gap-2">
-              <span className="flex flex-wrap items-center justify-between gap-2">
-                <span className="label">Van</span>
-                <a className="text-xs font-semibold text-red-700 underline" href={timingHref} rel="noreferrer" target="_blank">
-                  Click here to see van timings
-                </a>
-              </span>
-              <select className="field" name="van_number" required>
-                {cliftonRoute.vans.map((van) => (
-                  <option key={van}>{van}</option>
-                ))}
-              </select>
-            </label>
-          </>
-        ) : (
-          <>
+          ) : (
             <input name="ride_type" type="hidden" value="both_side" />
-            <label className="grid gap-2 sm:col-span-2">
-              <span className="flex flex-wrap items-center justify-between gap-2">
-                <span className="label">Van</span>
-                <a className="text-xs font-semibold text-red-700 underline" href={timingHref} rel="noreferrer" target="_blank">
-                  Click here to see van timings
-                </a>
-              </span>
-              <select className="field" name="van_number" required>
-                {linkRoadRoute.vans.map((van) => (
-                  <option key={van}>{van}</option>
-                ))}
-              </select>
-            </label>
-          </>
-        )}
-        <label className="grid gap-2 sm:col-span-2">
-          <span className="label">Amount to pay now</span>
-          <input
-            aria-live="polite"
-            className="field border-red-200 bg-red-50 text-lg font-bold text-red-800"
-            readOnly
-            value={formatMoney(currentMonthFee)}
-          />
-          <span className="text-xs leading-5 text-slate-600">
-            Full monthly fee is {formatMoney(monthlyFee || fullFee)}.{" "}
-            {customerType === "existing"
-              ? "Existing customer selected, so this month uses the full fee."
-              : "New customer selected, so this month is charged for remaining days only."}
-          </span>
-        </label>
-        <PasswordInput
-          autoComplete="new-password"
-          label="Password"
-          minLength={6}
-          name="password"
-          onValueChange={setPassword}
-        />
-        <PasswordInput
-          autoComplete="new-password"
-          label="Confirm password"
-          minLength={6}
-          name="confirm_password"
-          onValueChange={setConfirmPassword}
-        />
-        <div className="sm:col-span-2">
-          {passwordMismatch ? (
-            <p className="mb-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">Password and confirm password do not match.</p>
-          ) : null}
-          <SubmitButton disabled={passwordMismatch} pendingText="Submitting...">Submit Registration</SubmitButton>
-        </div>
+          )}
+          <label className={`grid gap-2 ${selectedRoute.id === linkRoadRoute.id ? "sm:col-span-2" : ""}`}>
+            <span className="flex flex-wrap items-center justify-between gap-2">
+              <span className="label">Van</span>
+              <a className="text-xs font-semibold text-red-700 underline" href={timingHref} rel="noreferrer" target="_blank">
+                Click here to see van timings
+              </a>
+            </span>
+            <select className="field" name="van_number" onChange={(event) => setVanNumber(event.target.value)} required value={vanNumber}>
+              {selectedRoute.vans.map((van) => (
+                <option key={van}>{van}</option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 sm:col-span-2">
+            <span className="label">Amount to pay now</span>
+            <input
+              aria-live="polite"
+              className="field border-red-200 bg-red-50 text-lg font-bold text-red-800"
+              readOnly
+              value={formatMoney(currentMonthFee)}
+            />
+            <span className="text-xs leading-5 text-slate-600">
+              Full monthly fee is {formatMoney(monthlyFee || fullFee)}.{" "}
+              {customerType === "existing"
+                ? "Existing customer selected, so this month uses the full fee."
+                : "New customer selected, so this month is charged for remaining days only."}
+            </span>
+          </label>
+          <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+            <button className="btn btn-secondary w-full" onClick={() => setStep(0)} type="button">
+              Back
+            </button>
+            <button className="btn btn-primary w-full" onClick={() => validateStep(2)} type="button">
+              Review Details
+            </button>
+          </div>
+        </section>
+
+        <section className={step === 2 ? "grid gap-4" : "hidden"} data-register-step="2">
+          <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+            <ReviewItem label="Full name" value={fullName || "-"} />
+            <ReviewItem label="Phone number" value={phone || "-"} />
+            <ReviewItem label="Customer type" value={customerTypeLabel} />
+            <ReviewItem label="Service route" value={selectedRoute.name} />
+            <ReviewItem label="Pickup location" value={pickupAddress} />
+            <ReviewItem label="Destination" value={selectedRoute.drop} />
+            <ReviewItem label="Fee type" value={selectedRoute.id === linkRoadRoute.id ? "Fixed route fee" : rideTypeLabel} />
+            <ReviewItem label="Van" value={vanNumber} />
+            <ReviewItem label="Full monthly fee" value={formatMoney(monthlyFee || fullFee)} />
+            <ReviewItem label="Amount to pay now" value={formatMoney(currentMonthFee)} strong />
+          </div>
+          <p className="rounded-lg bg-red-50 p-3 text-xs font-semibold leading-5 text-red-900">
+            Please confirm your details before submitting. You can go back and edit anything before registration.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button className="btn btn-secondary w-full" onClick={() => setStep(1)} type="button">
+              Back
+            </button>
+            <SubmitButton disabled={passwordMismatch} pendingText="Submitting...">Submit Registration</SubmitButton>
+          </div>
+        </section>
       </form>
       <Link className="mt-4 block text-center text-sm font-semibold text-red-700" href="/auth/login">
         Back to login
       </Link>
+    </div>
+  );
+}
+
+function ReviewItem({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs font-bold uppercase text-slate-500">{label}</p>
+      <p className={`mt-1 break-words text-sm ${strong ? "font-bold text-red-800" : "font-semibold text-slate-950"}`}>{value}</p>
     </div>
   );
 }
