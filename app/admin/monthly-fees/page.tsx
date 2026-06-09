@@ -1,5 +1,5 @@
-import { CheckCircle2, ReceiptText, XCircle } from "lucide-react";
-import { approveProofAction, rejectProofAction } from "@/app/actions";
+import { CheckCircle2, ReceiptText } from "lucide-react";
+import { approveProofAction } from "@/app/actions";
 import { ScreenshotPreview } from "@/components/admin/ScreenshotPreview";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
@@ -10,6 +10,7 @@ import { businessName } from "@/lib/daniyal-transport";
 import { clampMonth, currentMonthYear, formatDisplayDate, formatMoney, formatMonthYear, safeYear } from "@/lib/utils/date";
 import { defaultReminderTemplate, renderReminder, whatsappLink } from "@/lib/whatsapp/reminder";
 import { FeeFilters } from "./FeeFilters";
+import { RejectPaymentForm } from "./RejectPaymentForm";
 
 type FeePaymentProof = {
   id: string;
@@ -137,6 +138,7 @@ export default async function MonthlyFeesPage({
         {filtered.map((fee) => {
           const customer = fee.customers;
           const pendingProofsForFee = ((fee.payment_proofs ?? []) as FeePaymentProof[]).filter((proof) => proof.status === "pending");
+          const needsReview = pendingProofsForFee.length > 0;
           const pending = Math.max(Number(fee.fee_amount) - Number(fee.paid_amount), 0);
           const isPaid = fee.status === "paid" || pending <= 0;
           const message = renderReminder(settings?.whatsapp_reminder_template ?? defaultReminderTemplate, {
@@ -151,7 +153,23 @@ export default async function MonthlyFeesPage({
           });
 
           return (
-            <article className="panel p-4" key={fee.id}>
+            <article
+              className={`panel p-4 ${
+                needsReview ? "border-2 border-sky-300 bg-sky-50/40 shadow-md shadow-sky-100" : ""
+              }`}
+              key={fee.id}
+            >
+              {needsReview ? (
+                <div className="-mx-4 -mt-4 mb-4 flex items-center justify-between gap-3 rounded-t-lg bg-sky-700 px-4 py-3 text-white">
+                  <div className="flex min-w-0 items-center gap-2 text-sm font-bold">
+                    <ReceiptText size={18} />
+                    <span className="truncate">Verification needed</span>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-xs font-bold">
+                    {pendingProofsForFee.length} proof{pendingProofsForFee.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-base font-bold text-slate-950">{customer?.full_name ?? "Customer"}</p>
@@ -175,10 +193,10 @@ export default async function MonthlyFeesPage({
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-2">
+              <div className="mt-4 flex justify-end">
                 <a
                   aria-label={`Send WhatsApp reminder to ${customer?.full_name ?? "customer"}`}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1ebe5d]"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#1ebe5d]"
                   href={whatsappLink(customer?.whatsapp_number ?? customer?.phone ?? "", message)}
                   target="_blank"
                 >
@@ -188,17 +206,17 @@ export default async function MonthlyFeesPage({
               </div>
 
               {pendingProofsForFee.length ? (
-                <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4">
+                <div className="mt-4 grid gap-3 border-t border-sky-200 pt-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-950">
-                    <ReceiptText className="text-red-700" size={18} />
-                    Payment proof to review
+                    <ReceiptText className="text-sky-700" size={18} />
+                    Review submitted payment
                   </div>
                   {pendingProofsForFee.map((proof) => {
                     const balanceAfter = Math.max(pending - Number(proof.amount ?? 0), 0);
                     const signedUrl = signedUrlByProofId.get(proof.id);
 
                     return (
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3" key={proof.id}>
+                      <div className="rounded-lg border border-sky-200 bg-white p-3 shadow-sm" key={proof.id}>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
                             <p className="text-slate-500">Submitted</p>
@@ -231,23 +249,16 @@ export default async function MonthlyFeesPage({
                             No screenshot was uploaded for this payment.
                           </p>
                         )}
-                        <div className="mt-3 grid gap-2">
+                        <div className="mt-3 grid gap-3 border-t border-slate-100 pt-3">
                           <form action={approveProofAction} className="grid">
                             <input name="proof_id" type="hidden" value={proof.id} />
                             <input name="fee_record_id" type="hidden" value={fee.id} />
                             <input name="amount" type="hidden" value={proof.amount} />
-                            <SubmitButton className="btn btn-primary min-h-12 w-full">
+                            <SubmitButton className="btn min-h-12 w-full bg-emerald-600 text-white hover:bg-emerald-700">
                               <CheckCircle2 size={18} /> Approve Payment
                             </SubmitButton>
                           </form>
-                          <form action={rejectProofAction} className="grid gap-2 sm:grid-cols-[1fr_180px]">
-                            <input name="proof_id" type="hidden" value={proof.id} />
-                            <input name="fee_record_id" type="hidden" value={fee.id} />
-                            <input className="field bg-white" name="admin_note" placeholder="Reject reason" />
-                            <SubmitButton className="btn btn-danger min-h-12 w-full">
-                              <XCircle size={18} /> Reject
-                            </SubmitButton>
-                          </form>
+                          <RejectPaymentForm feeRecordId={fee.id} proofId={proof.id} />
                         </div>
                       </div>
                     );
