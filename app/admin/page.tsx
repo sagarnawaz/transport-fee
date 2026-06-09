@@ -39,8 +39,8 @@ export default async function AdminDashboard() {
         ))}
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <Link className="btn btn-primary" href="/admin/pending-payments">
-          Verify Payments ({stats.pendingProofs})
+        <Link className="btn btn-primary" href="/admin/monthly-fees?status=pending_verification">
+          Review Fees ({stats.pendingProofs})
         </Link>
         <Link className="btn btn-secondary" href="/admin/customers">
           Customers

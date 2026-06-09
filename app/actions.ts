@@ -291,43 +291,6 @@ export async function generateFeesAction(formData: FormData) {
   redirect(`/admin/monthly-fees?month=${month}&year=${year}`);
 }
 
-export async function markFeePaidAction(formData: FormData) {
-  const supabase = await createClient();
-  if (!supabase) return;
-
-  const feeRecordId = value(formData, "fee_record_id");
-  if (!feeRecordId) return;
-
-  const feeAmount = positiveNumber(formData, "fee_amount");
-  const month = clampMonth(asNumber(formData, "month", new Date().getMonth() + 1));
-  const year = safeYear(asNumber(formData, "year", new Date().getFullYear()));
-
-  const { data: fee } = await supabase
-    .from("monthly_fee_records")
-    .select("status")
-    .eq("id", feeRecordId)
-    .maybeSingle();
-
-  if (fee?.status === "unpaid") {
-    redirect(`/admin/monthly-fees?month=${month}&year=${year}&error=unpaid-mark-paid`);
-  }
-
-  const { error } = await supabase
-    .from("monthly_fee_records")
-    .update({ paid_amount: feeAmount, status: "paid" })
-    .eq("id", feeRecordId);
-
-  if (error) {
-    console.error("Mark fee paid failed", error);
-    redirect(`/admin/monthly-fees?month=${month}&year=${year}&error=mark-paid`);
-  }
-
-  revalidatePath("/admin/monthly-fees");
-  revalidatePath("/admin/customers");
-  revalidatePath("/admin");
-  redirect(`/admin/monthly-fees?month=${month}&year=${year}`);
-}
-
 export async function submitProofAction(formData: FormData) {
   const supabase = await createClient();
   if (!supabase) redirect("/customer/submit-payment?error=missing-config");
@@ -367,15 +330,22 @@ export async function submitProofAction(formData: FormData) {
 
   const file = formData.get("screenshot");
   let screenshotPath: string | null = null;
-  if (!(file instanceof File) || file.size <= 0 || file.size > 5 * 1024 * 1024 || !file.type.startsWith("image/")) {
+
+  if (paymentMethod !== "Cash" && (!(file instanceof File) || file.size <= 0)) {
     redirect("/customer/submit-payment?error=screenshot");
   }
 
-  const ext = (file.name.split(".").pop() || "jpg").replace(/[^a-z0-9]/gi, "").toLowerCase() || "jpg";
-  screenshotPath = `${customer.id}/${crypto.randomUUID()}.${ext}`;
-  const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(screenshotPath, file, { upsert: false });
-  if (uploadError) {
-    redirect("/customer/submit-payment?error=upload");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 5 * 1024 * 1024 || !file.type.startsWith("image/")) {
+      redirect("/customer/submit-payment?error=screenshot");
+    }
+
+    const ext = (file.name.split(".").pop() || "jpg").replace(/[^a-z0-9]/gi, "").toLowerCase() || "jpg";
+    screenshotPath = `${customer.id}/${crypto.randomUUID()}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(screenshotPath, file, { upsert: false });
+    if (uploadError) {
+      redirect("/customer/submit-payment?error=upload");
+    }
   }
 
   const { error: insertError } = await supabase.from("payment_proofs").insert({

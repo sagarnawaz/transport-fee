@@ -99,7 +99,15 @@ export default async function PendingPaymentsPage() {
 
                 {proof.signedUrl ? (
                   <ScreenshotPreview url={proof.signedUrl} />
-                ) : null}
+                ) : proof.payment_method === "Cash" ? (
+                  <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">
+                    Cash payment submitted. No screenshot is required for this payment.
+                  </p>
+                ) : (
+                  <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-semibold leading-6 text-rose-900">
+                    No screenshot was uploaded for this payment.
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-3 border-t border-slate-100 bg-slate-50 p-4">

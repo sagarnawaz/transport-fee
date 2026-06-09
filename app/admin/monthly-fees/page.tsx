@@ -1,4 +1,6 @@
-import { generateFeesAction, markFeePaidAction } from "@/app/actions";
+import { CheckCircle2, ReceiptText, XCircle } from "lucide-react";
+import { approveProofAction, rejectProofAction } from "@/app/actions";
+import { ScreenshotPreview } from "@/components/admin/ScreenshotPreview";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -7,6 +9,17 @@ import { createClient } from "@/lib/supabase/server";
 import { businessName } from "@/lib/daniyal-transport";
 import { clampMonth, currentMonthYear, formatDisplayDate, formatMoney, formatMonthYear, safeYear } from "@/lib/utils/date";
 import { defaultReminderTemplate, renderReminder, whatsappLink } from "@/lib/whatsapp/reminder";
+import { FeeFilters } from "./FeeFilters";
+
+type FeePaymentProof = {
+  id: string;
+  amount: number;
+  payment_method: string;
+  payment_date: string | null;
+  screenshot_path: string | null;
+  status: string;
+  transaction_id: string | null;
+};
 
 export default async function MonthlyFeesPage({
   searchParams,
@@ -22,7 +35,7 @@ export default async function MonthlyFeesPage({
   const [{ data: fees }, { data: settings }] = await Promise.all([
     supabase
       .from("monthly_fee_records")
-      .select("*, customers(customer_code, full_name, phone, whatsapp_number)")
+      .select("*, customers(customer_code, full_name, phone, whatsapp_number), payment_proofs(*)")
       .eq("month", month)
       .eq("year", year)
       .order("created_at", { ascending: false }),
@@ -37,63 +50,95 @@ export default async function MonthlyFeesPage({
     const matchesQ = !q || [customer?.full_name, customer?.phone, customer?.customer_code].some((part) => String(part ?? "").toLowerCase().includes(q));
     return matchesStatus && matchesQ;
   });
+  const pendingProofs = filtered.flatMap((fee) =>
+    ((fee.payment_proofs ?? []) as FeePaymentProof[])
+      .filter((proof) => proof.status === "pending")
+      .map((proof) => ({ ...proof, feeId: fee.id })),
+  );
+  const signedUrlByProofId = new Map(
+    await Promise.all(
+      pendingProofs.map(async (proof) => {
+        if (!proof.screenshot_path) return [proof.id, null] as const;
+        const { data } = await supabase.storage.from("payment-proofs").createSignedUrl(proof.screenshot_path, 60 * 10);
+        return [proof.id, data?.signedUrl ?? null] as const;
+      }),
+    ),
+  );
+  const pendingProofCount = pendingProofs.length;
 
   return (
     <main className="section">
       <div>
-        <h1 className="text-2xl font-bold text-slate-950">Manage Fees</h1>
-        <p className="mt-1 text-sm text-slate-600">Mark payments paid and send simple reminders for {formatMonthYear(month, year)}.</p>
+        <h1 className="text-2xl font-bold text-slate-950">Fees</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Review monthly fees, approve submitted proofs, and send reminders for {formatMonthYear(month, year)}.
+        </p>
       </div>
 
-      {params.error === "mark-paid" ? (
-        <p className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">
-          Payment could not be marked paid. Please check admin login and try again.
-        </p>
-      ) : null}
-      {params.error === "unpaid-mark-paid" ? (
-        <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-          Unpaid fees cannot be marked paid until a payment proof is submitted.
-        </p>
-      ) : null}
-
-      <form action={generateFeesAction} className="panel mt-4 grid gap-3 p-4 sm:grid-cols-[1fr_1fr_1fr_auto]">
-        <label className="grid gap-2">
-          <span className="label">Month</span>
-          <input className="field" defaultValue={month} max={12} min={1} name="month" type="number" />
-        </label>
-        <label className="grid gap-2">
-          <span className="label">Year</span>
-          <input className="field" defaultValue={year} name="year" type="number" />
-        </label>
-        <label className="grid gap-2">
-          <span className="label">Due day</span>
-          <input className="field" defaultValue={settings?.default_due_day ?? 10} max={28} min={1} name="due_day" type="number" />
-        </label>
-        <div className="grid content-end">
-          <SubmitButton>Generate</SubmitButton>
+      <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="panel p-4">
+          <p className="text-sm text-slate-500">Fee records</p>
+          <p className="mt-1 text-2xl font-bold text-slate-950">{filtered.length}</p>
         </div>
-      </form>
+        <div className="panel p-4">
+          <p className="text-sm text-slate-500">Need review</p>
+          <p className="mt-1 text-2xl font-bold text-sky-700">{pendingProofCount}</p>
+        </div>
+        <div className="panel p-4">
+          <p className="text-sm text-slate-500">Paid</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">
+            {filtered.filter((fee) => fee.status === "paid").length}
+          </p>
+        </div>
+        <div className="panel p-4">
+          <p className="text-sm text-slate-500">Unpaid</p>
+          <p className="mt-1 text-2xl font-bold text-red-700">
+            {filtered.filter((fee) => ["unpaid", "partial", "rejected"].includes(fee.status)).length}
+          </p>
+        </div>
+      </section>
 
-      <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_1fr_1fr_auto]">
-        <input name="month" type="hidden" value={month} />
-        <input name="year" type="hidden" value={year} />
-        <select className="field" defaultValue={params.status ?? ""} name="status">
-          <option value="">All</option>
-          <option value="unpaid">Unpaid</option>
-          <option value="pending_verification">Pending proof</option>
-          <option value="paid">Paid</option>
-        </select>
-        <input className="field sm:col-span-3" defaultValue={params.q ?? ""} name="q" placeholder="Search name, phone, ID" />
-        <button className="btn btn-secondary" type="submit">Search</button>
+      {/*
+      <form action={generateFeesAction} className="panel mt-4 grid gap-4 p-4">
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div>
+            <p className="text-base font-bold text-slate-950">{formatMonthYear(month, year)} fee setup</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Create unpaid fee records for all active customers. Existing records will stay unchanged.
+            </p>
+          </div>
+          <SubmitButton className="btn btn-primary w-full sm:w-auto">Generate {formatMonthYear(month, year)} Fees</SubmitButton>
+        </div>
+
+        <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <summary className="cursor-pointer text-sm font-bold text-slate-800">Change month or due date</summary>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <label className="grid gap-2">
+              <span className="label">Month</span>
+              <input className="field" defaultValue={month} max={12} min={1} name="month" type="number" />
+            </label>
+            <label className="grid gap-2">
+              <span className="label">Year</span>
+              <input className="field" defaultValue={year} name="year" type="number" />
+            </label>
+            <label className="grid gap-2">
+              <span className="label">Due day</span>
+              <input className="field" defaultValue={settings?.default_due_day ?? 10} max={28} min={1} name="due_day" type="number" />
+            </label>
+          </div>
+        </details>
       </form>
+      */}
+
+      <FeeFilters month={month} q={params.q} status={params.status} year={year} />
 
       <div className="mt-5 grid gap-3">
         {!filtered.length ? <EmptyState title="No fee records" text="Generate fees first or change the filter." /> : null}
         {filtered.map((fee) => {
           const customer = fee.customers;
+          const pendingProofsForFee = ((fee.payment_proofs ?? []) as FeePaymentProof[]).filter((proof) => proof.status === "pending");
           const pending = Math.max(Number(fee.fee_amount) - Number(fee.paid_amount), 0);
           const isPaid = fee.status === "paid" || pending <= 0;
-          const canMarkPaid = !isPaid && fee.status !== "unpaid";
           const message = renderReminder(settings?.whatsapp_reminder_template ?? defaultReminderTemplate, {
             customer_name: customer?.full_name ?? "Customer",
             customer_id: customer?.customer_code ?? "-",
@@ -130,24 +175,97 @@ export default async function MonthlyFeesPage({
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <form action={markFeePaidAction}>
-                  <input name="fee_record_id" type="hidden" value={fee.id} />
-                  <input name="fee_amount" type="hidden" value={fee.fee_amount} />
-                  <input name="month" type="hidden" value={month} />
-                  <input name="year" type="hidden" value={year} />
-                  <SubmitButton className="btn btn-primary w-full" disabled={!canMarkPaid}>
-                    {isPaid ? "Paid" : fee.status === "unpaid" ? "No Proof Yet" : "Mark Paid"}
-                  </SubmitButton>
-                </form>
-                <a className="btn btn-secondary" href={whatsappLink(customer?.whatsapp_number ?? customer?.phone ?? "", message)} target="_blank">
-                  WhatsApp Reminder
+              <div className="mt-4 grid gap-2">
+                <a
+                  aria-label={`Send WhatsApp reminder to ${customer?.full_name ?? "customer"}`}
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1ebe5d]"
+                  href={whatsappLink(customer?.whatsapp_number ?? customer?.phone ?? "", message)}
+                  target="_blank"
+                >
+                  <WhatsAppIcon />
+                  WhatsApp
                 </a>
               </div>
+
+              {pendingProofsForFee.length ? (
+                <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-950">
+                    <ReceiptText className="text-red-700" size={18} />
+                    Payment proof to review
+                  </div>
+                  {pendingProofsForFee.map((proof) => {
+                    const balanceAfter = Math.max(pending - Number(proof.amount ?? 0), 0);
+                    const signedUrl = signedUrlByProofId.get(proof.id);
+
+                    return (
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3" key={proof.id}>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-slate-500">Submitted</p>
+                            <p className="font-bold text-slate-950">{formatMoney(proof.amount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">Balance after</p>
+                            <p className="font-bold text-slate-950">{formatMoney(balanceAfter)}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">Method</p>
+                            <p className="font-semibold text-slate-950">{proof.payment_method}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">Date</p>
+                            <p className="font-semibold text-slate-950">{formatDisplayDate(proof.payment_date)}</p>
+                          </div>
+                        </div>
+                        <p className="mt-3 break-words rounded-lg bg-white p-3 text-sm text-slate-700">
+                          Reference: {proof.transaction_id || "No reference provided"}
+                        </p>
+                        {signedUrl ? (
+                          <ScreenshotPreview url={signedUrl} />
+                        ) : proof.payment_method === "Cash" ? (
+                          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">
+                            Cash payment submitted. No screenshot is required for this payment.
+                          </p>
+                        ) : (
+                          <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-semibold leading-6 text-rose-900">
+                            No screenshot was uploaded for this payment.
+                          </p>
+                        )}
+                        <div className="mt-3 grid gap-2">
+                          <form action={approveProofAction} className="grid">
+                            <input name="proof_id" type="hidden" value={proof.id} />
+                            <input name="fee_record_id" type="hidden" value={fee.id} />
+                            <input name="amount" type="hidden" value={proof.amount} />
+                            <SubmitButton className="btn btn-primary min-h-12 w-full">
+                              <CheckCircle2 size={18} /> Approve Payment
+                            </SubmitButton>
+                          </form>
+                          <form action={rejectProofAction} className="grid gap-2 sm:grid-cols-[1fr_180px]">
+                            <input name="proof_id" type="hidden" value={proof.id} />
+                            <input name="fee_record_id" type="hidden" value={fee.id} />
+                            <input className="field bg-white" name="admin_note" placeholder="Reject reason" />
+                            <SubmitButton className="btn btn-danger min-h-12 w-full">
+                              <XCircle size={18} /> Reject
+                            </SubmitButton>
+                          </form>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
             </article>
           );
         })}
       </div>
     </main>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg aria-hidden="true" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.33 4.95L2.05 22l5.27-1.38a9.9 9.9 0 0 0 4.72 1.2h.01c5.46 0 9.91-4.44 9.91-9.9C21.96 6.45 17.51 2 12.04 2Zm0 18.14h-.01a8.2 8.2 0 0 1-4.17-1.14l-.3-.18-3.13.82.84-3.05-.2-.31a8.22 8.22 0 0 1-1.26-4.37c0-4.54 3.69-8.23 8.24-8.23a8.22 8.22 0 0 1 8.23 8.24c0 4.53-3.7 8.22-8.24 8.22Zm4.52-6.16c-.25-.12-1.47-.73-1.7-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.78.98-.14.16-.29.18-.54.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43h-.48c-.16 0-.43.06-.66.31-.23.25-.86.84-.86 2.04s.88 2.37 1 2.53c.12.17 1.72 2.63 4.18 3.69.58.25 1.04.4 1.39.51.59.19 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.16-.48-.28Z" />
+    </svg>
   );
 }

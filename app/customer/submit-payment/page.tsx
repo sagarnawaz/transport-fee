@@ -31,7 +31,7 @@ export default async function SubmitPaymentPage({
     validation: "Please fill the required fields.",
     amount: "Enter a valid payment amount.",
     fee: "Please select a payable fee.",
-    screenshot: "Please upload a payment proof image up to 5 MB.",
+    screenshot: "Please upload a payment proof image up to 5 MB. Cash payments can be submitted without a screenshot.",
     upload: "Could not upload the screenshot. Please try again.",
     submit: "Could not submit payment. Please try again.",
     "missing-config": "App setup is incomplete.",
@@ -80,7 +80,7 @@ export default async function SubmitPaymentPage({
           <section className="panel grid gap-4 p-5">
             <div>
               <h2 className="text-lg font-bold text-slate-950">Payment details</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-600">Only these fields are needed for verification.</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">For cash payments, a screenshot is not needed.</p>
             </div>
             {customer ? (
               <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm leading-6 text-red-950">
@@ -129,7 +129,7 @@ export default async function SubmitPaymentPage({
             </label>
 
             <label className="grid gap-2">
-              <span className="label">Receipt screenshot *</span>
+              <span className="label">Receipt screenshot</span>
               <span className="grid gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
                 <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                   <ImageUp size={18} /> Upload payment proof
@@ -138,9 +138,11 @@ export default async function SubmitPaymentPage({
                   accept="image/*"
                   className="text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-slate-800"
                   name="screenshot"
-                  required
                   type="file"
                 />
+                <span className="text-xs font-semibold leading-5 text-slate-500">
+                  Required for bank/wallet payments. Optional for cash.
+                </span>
               </span>
             </label>
 
