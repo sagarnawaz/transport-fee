@@ -2,9 +2,11 @@ import Link from "next/link";
 import { CreditCard, Users, WalletCards, type LucideIcon } from "lucide-react";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { getAdminDashboard } from "@/lib/app-queries";
+import { requireRole } from "@/lib/auth-guards";
 import { formatMoney } from "@/lib/utils/date";
 
 export default async function AdminDashboard() {
+  await requireRole("admin");
   const stats = await getAdminDashboard();
 
   if (!stats) {

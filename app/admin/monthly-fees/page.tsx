@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { requireRole } from "@/lib/auth-guards";
 import { createClient } from "@/lib/supabase/server";
 import { businessName } from "@/lib/daniyal-transport";
 import { clampMonth, currentMonthYear, formatDisplayDate, formatDisplayDateTime, formatMoney, formatMonthYear, safeYear } from "@/lib/utils/date";
@@ -28,6 +29,7 @@ export default async function MonthlyFeesPage({
 }: {
   searchParams: Promise<{ error?: string; month?: string; year?: string; status?: string; q?: string }>;
 }) {
+  await requireRole("admin");
   const supabase = await createClient();
   if (!supabase) return <main className="section"><SetupNotice /></main>;
   const params = await searchParams;

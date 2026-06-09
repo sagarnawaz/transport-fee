@@ -1,10 +1,12 @@
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { csvDownloadHref } from "@/lib/csv/export";
+import { requireRole } from "@/lib/auth-guards";
 import { createClient } from "@/lib/supabase/server";
 import { currentMonthYear, formatDisplayDate, formatMonthYear } from "@/lib/utils/date";
 
 export default async function ReportsPage() {
+  await requireRole("admin");
   const supabase = await createClient();
   if (!supabase) return <main className="section"><SetupNotice /></main>;
   const { month, year } = currentMonthYear();

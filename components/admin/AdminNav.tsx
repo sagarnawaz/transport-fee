@@ -1,10 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Home, LogOut, Settings, Users, WalletCards, type LucideIcon } from "lucide-react";
-import { logoutAction } from "@/app/actions";
+import { usePathname, useRouter } from "next/navigation";
+import { Home, Settings, Users, WalletCards, type LucideIcon } from "lucide-react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import { LogoutConfirmButton } from "@/components/ui/LogoutConfirmButton";
 
 const links: { label: string; href: string; icon: LucideIcon }[] = [
   { label: "Home", href: "/admin", icon: Home },
@@ -19,6 +20,12 @@ function isActive(pathname: string, href: string) {
 
 export function AdminNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [navigatingHref, setNavigatingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    links.forEach((link) => router.prefetch(link.href));
+  }, [router]);
 
   return (
     <>
@@ -34,25 +41,27 @@ export function AdminNav() {
               <p className="text-xs font-semibold text-red-700">Admin Panel</p>
               </span>
             </Link>
-            <form action={logoutAction}>
-              <button className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50" aria-label="Logout" type="submit">
-                <LogOut aria-hidden="true" size={18} />
-              </button>
-            </form>
+            <LogoutConfirmButton />
           </div>
           <nav className="mt-3 hidden gap-2 overflow-x-auto pb-1 sm:flex">
             {links.map(({ label, href, icon: Icon }) => {
               const active = isActive(pathname, href);
+              const navigating = navigatingHref === href && !active;
               return (
                 <Link
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium whitespace-nowrap ${
                     active ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-slate-50 text-slate-700"
-                  }`}
+                  } ${navigating ? "opacity-75" : ""}`}
                   href={href}
                   key={href}
+                  onClick={() => {
+                    if (!active) setNavigatingHref(href);
+                  }}
+                  prefetch
                 >
                   <Icon aria-hidden="true" size={16} />
                   {label}
+                  {navigating ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" /> : null}
                 </Link>
               );
             })}
@@ -62,15 +71,24 @@ export function AdminNav() {
       <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:hidden">
         {links.map(({ label, href, icon: Icon }) => {
           const active = isActive(pathname, href);
+          const navigating = navigatingHref === href && !active;
           return (
             <Link
               className={`grid min-h-12 place-items-center rounded-lg text-[11px] font-semibold ${
                 active ? "bg-red-50 text-red-700" : "text-slate-500"
-              }`}
+              } ${navigating ? "bg-red-50 text-red-700" : ""}`}
               href={href}
               key={href}
+              onClick={() => {
+                if (!active) setNavigatingHref(href);
+              }}
+              prefetch
             >
-              <Icon aria-hidden="true" size={20} />
+              {navigating ? (
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Icon aria-hidden="true" size={20} />
+              )}
               <span className="mt-1">{label}</span>
             </Link>
           );

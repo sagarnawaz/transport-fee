@@ -1,9 +1,11 @@
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getCurrentCustomer } from "@/lib/app-queries";
+import { requireRole } from "@/lib/auth-guards";
 import { formatDisplayDate, formatMoney } from "@/lib/utils/date";
 
 export default async function ProfilePage() {
+  await requireRole("customer");
   const { supabase, customer } = await getCurrentCustomer();
   if (!supabase) return <main className="section"><SetupNotice /></main>;
 

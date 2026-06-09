@@ -2,9 +2,11 @@ import { saveRouteAction } from "@/app/actions";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { requireRole } from "@/lib/auth-guards";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function RoutesPage() {
+  await requireRole("admin");
   const supabase = await createClient();
   if (!supabase) return <main className="section"><SetupNotice /></main>;
   const { data: routes } = await supabase.from("routes").select("*").order("created_at", { ascending: false });

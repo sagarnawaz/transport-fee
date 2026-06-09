@@ -165,6 +165,15 @@ export function paymentInstructionsFromSettings(
   });
 }
 
+export function receiptWhatsappForDrop(
+  settings: Partial<Settings> | null | undefined,
+  dropAddress: string | null | undefined,
+) {
+  return dropAddress === linkRoadRoute.drop
+    ? settings?.link_road_receipt_whatsapp ?? defaultLinkRoadPayment.receiptWhatsapp
+    : settings?.clifton_receipt_whatsapp ?? defaultCliftonPayment.receiptWhatsapp;
+}
+
 function buildPaymentInstructions({
   routeName,
   method,

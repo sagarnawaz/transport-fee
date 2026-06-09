@@ -4,10 +4,12 @@ import { ScreenshotPreview } from "@/components/admin/ScreenshotPreview";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { requireRole } from "@/lib/auth-guards";
 import { createClient } from "@/lib/supabase/server";
 import { formatDisplayDate, formatDisplayDateTime, formatMoney, formatMonthYear } from "@/lib/utils/date";
 
 export default async function PendingPaymentsPage() {
+  await requireRole("admin");
   const supabase = await createClient();
   if (!supabase) return <main className="section"><SetupNotice /></main>;
   const { data: proofs } = await supabase
