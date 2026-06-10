@@ -119,23 +119,6 @@ export function RegisterForm({
         <BrandLogo />
       </div>
       <h1 className="mt-4 text-center text-2xl font-bold text-slate-950">Create your account</h1>
-      {step === 1 ? (
-        <div className="mt-5 rounded-lg border border-red-100 bg-red-50 p-4">
-          <p className="text-xs font-bold uppercase text-red-700">Current month fee</p>
-          <p className="mt-1 text-2xl font-bold text-slate-950">{formatMoney(currentMonthFee)}</p>
-          <p className="mt-1 text-sm font-semibold text-slate-700">Full monthly fee: {formatMoney(monthlyFee || fullFee)}</p>
-          <p className="mt-1 break-words text-sm leading-6 text-red-900">
-            {selectedRoute.id === cliftonRoute.id
-              ? `Mon-Fri: ${formatMoney(cliftonRoute.fees.mon_to_fri)} | Mon-Sat: ${formatMoney(cliftonRoute.fees.mon_to_sat)} | Single side: ${formatMoney(halfFee)}`
-              : "Gulshan-e-Hadeed / Steel Town: Rs. 12,000 | Other pickups: Rs. 16,000"}
-          </p>
-          <p className="mt-2 text-xs leading-5 text-red-900">
-            {customerType === "existing"
-              ? "Existing customers are charged the full monthly fee for the current month."
-              : "New customers are charged only for remaining days from registration date. Next month onward full monthly fee applies."}
-          </p>
-        </div>
-      ) : null}
       {errorMessage ? <p className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</p> : null}
       <ol className="mt-5 grid grid-cols-3 items-start gap-2" aria-label="Registration progress">
         {steps.map((label, index) => {
