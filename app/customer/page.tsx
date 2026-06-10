@@ -4,7 +4,7 @@ import { SetupNotice } from "@/components/ui/SetupNotice";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getCurrentCustomer, getSettings } from "@/lib/app-queries";
 import { requireRole } from "@/lib/auth-guards";
-import { paymentInstructionsFromSettings, receiptWhatsappForDrop } from "@/lib/daniyal-transport";
+import { paymentInstructionsFromSettings, receiptWhatsappForDrop, ridePlanLabel } from "@/lib/daniyal-transport";
 import { currentMonthYear, formatDisplayDate, formatMoney, makeDueDate } from "@/lib/utils/date";
 import { whatsappLink } from "@/lib/whatsapp/reminder";
 
@@ -21,7 +21,11 @@ export default async function CustomerDashboard() {
   const paidAmount = Number(fee?.paid_amount ?? 0);
   const pending = feeAmount - paidAmount;
   const paidPercent = feeAmount > 0 ? Math.min(Math.max((paidAmount / feeAmount) * 100, 0), 100) : 0;
-  const rideType = customer?.ride_type === "one_side" ? "One side" : "Both side";
+  const rideType = ridePlanLabel({
+    dropAddress: customer?.drop_address,
+    rideType: customer?.ride_type,
+    serviceDays: customer?.service_days,
+  });
   const feeStatus = fee?.status ?? "unpaid";
   const displayStatus = pending <= 0 && fee ? "paid" : feeStatus;
   const isPaid = displayStatus === "paid";

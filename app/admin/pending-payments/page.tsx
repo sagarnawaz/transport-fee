@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SetupNotice } from "@/components/ui/SetupNotice";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { requireRole } from "@/lib/auth-guards";
+import { ridePlanLabel } from "@/lib/daniyal-transport";
 import { createClient } from "@/lib/supabase/server";
 import { formatDisplayDate, formatDisplayDateTime, formatMoney, formatMonthYear } from "@/lib/utils/date";
 
@@ -14,7 +15,7 @@ export default async function PendingPaymentsPage() {
   if (!supabase) return <main className="section"><SetupNotice /></main>;
   const { data: proofs } = await supabase
     .from("payment_proofs")
-    .select("*, customers(customer_code, full_name, phone, ride_type), monthly_fee_records(month, year, fee_amount, paid_amount)")
+    .select("*, customers(customer_code, full_name, phone, ride_type, service_days, drop_address), monthly_fee_records(month, year, fee_amount, paid_amount)")
     .eq("status", "pending")
     .order("submitted_at");
 
@@ -51,7 +52,11 @@ export default async function PendingPaymentsPage() {
         {!withUrls.length ? <EmptyState title="No pending payments" text="Customer payment submissions will appear here." /> : null}
         {withUrls.map((proof) => {
           const fee = proof.monthly_fee_records;
-          const rideType = proof.customers?.ride_type === "one_side" ? "One side" : "Both side";
+          const rideType = ridePlanLabel({
+            dropAddress: proof.customers?.drop_address,
+            rideType: proof.customers?.ride_type,
+            serviceDays: proof.customers?.service_days,
+          });
           const feeAmount = Number(fee?.fee_amount ?? proof.amount);
           const paidAmount = Number(fee?.paid_amount ?? 0);
           const balanceAfter = Math.max(feeAmount - paidAmount - Number(proof.amount), 0);

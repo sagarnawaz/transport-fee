@@ -31,6 +31,7 @@ create table if not exists public.customers (
   pickup_address text not null,
   drop_address text not null,
   ride_type text not null default 'both_side' check (ride_type in ('both_side', 'one_side')),
+  service_days text not null default 'mon_to_sat' check (service_days in ('mon_to_fri', 'mon_to_sat')),
   route_id uuid references public.routes(id) on delete set null,
   monthly_fee numeric,
   status text not null default 'pending' check (status in ('pending', 'active', 'rejected', 'inactive')),
@@ -71,7 +72,7 @@ create table if not exists public.payment_proofs (
 create table if not exists public.settings (
   id uuid primary key default gen_random_uuid(),
   business_name text not null default 'Daniyal Transport',
-  default_monthly_fee numeric not null default 12500,
+  default_monthly_fee numeric not null default 12000,
   default_due_day int not null default 10 check (default_due_day between 1 and 28),
   pickup_locations text not null default 'Gulshan-e-Hadeed
 Steel Town
@@ -99,24 +100,25 @@ Ziauddin Link Road',
   clifton_payment_instructions text not null default 'Payment for Clifton route
 Bank Title: Israr Muhammad
 Meezan Bank number: 1047 0109 2680 26
-Double side: Rs. 12,500
-Single side: Rs. 7,500
+Double side Mon-Fri: Rs. 11,500
+Double side Mon-Sat: Rs. 12,000
+Single side: Rs. 6,500
 Pay before the 10th and send receipt screenshot on WhatsApp: 0301-2589603.',
   clifton_payment_method text not null default 'Bank Transfer',
   clifton_account_title text not null default 'Israr Muhammad',
   clifton_bank_name text not null default 'Meezan Bank',
   clifton_account_number text not null default '1047 0109 2680 26',
   clifton_receipt_whatsapp text not null default '0301-2589603',
-  clifton_payment_note text not null default 'Double side: Rs. 12,500
-Single side: Rs. 7,500
+  clifton_payment_note text not null default 'Double side Mon-Fri: Rs. 11,500
+Double side Mon-Sat: Rs. 12,000
+Single side: Rs. 6,500
 Pay before the 10th.',
   link_road_payment_instructions text not null default 'Payment for Link Road route
 Bank Title: Israr Muhammad
 Easy Paisa number: 0301-2589603
 AC Van
-Steel Town: Rs. 9,000
-Bhains Colony: Rs. 13,000
-Quaidabad: Rs. 15,000
+Gulshan-e-Hadeed / Steel Town: Rs. 12,000
+All other pickup locations: Rs. 16,000
 Note: Fees will be charged during the leave of the University.',
   link_road_payment_method text not null default 'EasyPaisa',
   link_road_account_title text not null default 'Israr Muhammad',
@@ -124,25 +126,24 @@ Note: Fees will be charged during the leave of the University.',
   link_road_account_number text not null default '0301-2589603',
   link_road_receipt_whatsapp text not null default '0301-2589603',
   link_road_payment_note text not null default 'AC Van
-Steel Town: Rs. 9,000
-Bhains Colony: Rs. 13,000
-Quaidabad: Rs. 15,000
+Gulshan-e-Hadeed / Steel Town: Rs. 12,000
+All other pickup locations: Rs. 16,000
 Fees will be charged during the leave of the University.',
   whatsapp_reminder_template text not null default 'Assalam o Alaikum {customer_name}, your transport fee for {month} {year} is pending. Amount: Rs. {pending_amount}. Customer ID: {customer_id}. Please make payment as soon as possible. Thank you.',
   payment_instructions text not null default 'Payment for Clifton route
 Bank Title: Israr Muhammad
 Meezan Bank number: 1047 0109 2680 26
-Double side: Rs. 12,500
-Single side: Rs. 7,500
+Double side Mon-Fri: Rs. 11,500
+Double side Mon-Sat: Rs. 12,000
+Single side: Rs. 6,500
 Pay before the 10th and send receipt screenshot on WhatsApp: 0301-2589603.
 
 Payment for Link Road route
 Bank Title: Israr Muhammad
 Easy Paisa number: 0301-2589603
 AC Van
-Steel Town: Rs. 9,000
-Bhains Colony: Rs. 13,000
-Quaidabad: Rs. 15,000
+Gulshan-e-Hadeed / Steel Town: Rs. 12,000
+All other pickup locations: Rs. 16,000
 Note: Fees will be charged during the leave of the University.',
   created_at timestamptz not null default now()
 );
@@ -151,32 +152,36 @@ alter table public.customers alter column whatsapp_number drop not null;
 alter table public.customers add column if not exists ride_type text not null default 'both_side';
 alter table public.customers drop constraint if exists customers_ride_type_check;
 alter table public.customers add constraint customers_ride_type_check check (ride_type in ('both_side', 'one_side'));
+alter table public.customers add column if not exists service_days text not null default 'mon_to_sat';
+alter table public.customers drop constraint if exists customers_service_days_check;
+alter table public.customers add constraint customers_service_days_check check (service_days in ('mon_to_fri', 'mon_to_sat'));
 create unique index if not exists profiles_phone_unique on public.profiles (phone) where phone is not null;
 create unique index if not exists customers_phone_unique on public.customers (phone);
-alter table public.settings add column if not exists default_monthly_fee numeric not null default 12500;
+alter table public.settings add column if not exists default_monthly_fee numeric not null default 12000;
 alter table public.settings add column if not exists pickup_locations text not null default 'Gulshan-e-Hadeed';
 alter table public.settings add column if not exists drop_locations text not null default 'Clifton';
 alter table public.settings add column if not exists clifton_payment_instructions text not null default 'Payment for Clifton route
 Bank Title: Israr Muhammad
 Meezan Bank number: 1047 0109 2680 26
-Double side: Rs. 12,500
-Single side: Rs. 7,500
+Double side Mon-Fri: Rs. 11,500
+Double side Mon-Sat: Rs. 12,000
+Single side: Rs. 6,500
 Pay before the 10th and send receipt screenshot on WhatsApp: 0301-2589603.';
 alter table public.settings add column if not exists clifton_payment_method text not null default 'Bank Transfer';
 alter table public.settings add column if not exists clifton_account_title text not null default 'Israr Muhammad';
 alter table public.settings add column if not exists clifton_bank_name text not null default 'Meezan Bank';
 alter table public.settings add column if not exists clifton_account_number text not null default '1047 0109 2680 26';
 alter table public.settings add column if not exists clifton_receipt_whatsapp text not null default '0301-2589603';
-alter table public.settings add column if not exists clifton_payment_note text not null default 'Double side: Rs. 12,500
-Single side: Rs. 7,500
+alter table public.settings add column if not exists clifton_payment_note text not null default 'Double side Mon-Fri: Rs. 11,500
+Double side Mon-Sat: Rs. 12,000
+Single side: Rs. 6,500
 Pay before the 10th.';
 alter table public.settings add column if not exists link_road_payment_instructions text not null default 'Payment for Link Road route
 Bank Title: Israr Muhammad
 Easy Paisa number: 0301-2589603
 AC Van
-Steel Town: Rs. 9,000
-Bhains Colony: Rs. 13,000
-Quaidabad: Rs. 15,000
+Gulshan-e-Hadeed / Steel Town: Rs. 12,000
+All other pickup locations: Rs. 16,000
 Note: Fees will be charged during the leave of the University.';
 alter table public.settings add column if not exists link_road_payment_method text not null default 'EasyPaisa';
 alter table public.settings add column if not exists link_road_account_title text not null default 'Israr Muhammad';
@@ -184,9 +189,8 @@ alter table public.settings add column if not exists link_road_bank_name text no
 alter table public.settings add column if not exists link_road_account_number text not null default '0301-2589603';
 alter table public.settings add column if not exists link_road_receipt_whatsapp text not null default '0301-2589603';
 alter table public.settings add column if not exists link_road_payment_note text not null default 'AC Van
-Steel Town: Rs. 9,000
-Bhains Colony: Rs. 13,000
-Quaidabad: Rs. 15,000
+Gulshan-e-Hadeed / Steel Town: Rs. 12,000
+All other pickup locations: Rs. 16,000
 Fees will be charged during the leave of the University.';
 
 insert into public.settings (business_name)
@@ -194,8 +198,95 @@ select 'Daniyal Transport'
 where not exists (select 1 from public.settings);
 
 update public.settings
-set default_monthly_fee = 12500
-where default_monthly_fee = 0;
+set default_monthly_fee = 12000
+where default_monthly_fee in (0, 12500);
+
+update public.settings
+set clifton_payment_note = 'Double side Mon-Fri: Rs. 11,500
+Double side Mon-Sat: Rs. 12,000
+Single side: Rs. 6,500
+Pay before the 10th.'
+where clifton_payment_note like '%12,500%'
+   or clifton_payment_note like '%7,500%';
+
+update public.settings
+set clifton_payment_instructions = 'Payment for Clifton route
+Bank Title: Israr Muhammad
+Meezan Bank number: 1047 0109 2680 26
+Double side Mon-Fri: Rs. 11,500
+Double side Mon-Sat: Rs. 12,000
+Single side: Rs. 6,500
+Pay before the 10th and send receipt screenshot on WhatsApp: 0301-2589603.'
+where clifton_payment_instructions like '%12,500%'
+   or clifton_payment_instructions like '%7,500%';
+
+update public.settings
+set link_road_payment_note = 'AC Van
+Gulshan-e-Hadeed / Steel Town: Rs. 12,000
+All other pickup locations: Rs. 16,000
+Fees will be charged during the leave of the University.'
+where link_road_payment_note like '%13,000%'
+   or link_road_payment_note like '%15,000%'
+   or link_road_payment_note like '%Quaidabad: Rs. 16,000%';
+
+update public.settings
+set link_road_payment_instructions = 'Payment for Link Road route
+Bank Title: Israr Muhammad
+Easy Paisa number: 0301-2589603
+AC Van
+Gulshan-e-Hadeed / Steel Town: Rs. 12,000
+All other pickup locations: Rs. 16,000
+Note: Fees will be charged during the leave of the University.'
+where link_road_payment_instructions like '%13,000%'
+   or link_road_payment_instructions like '%15,000%'
+   or link_road_payment_instructions like '%Quaidabad: Rs. 16,000%';
+
+update public.settings
+set payment_instructions = 'Payment for Clifton route
+Bank Title: Israr Muhammad
+Meezan Bank number: 1047 0109 2680 26
+Double side Mon-Fri: Rs. 11,500
+Double side Mon-Sat: Rs. 12,000
+Single side: Rs. 6,500
+Pay before the 10th and send receipt screenshot on WhatsApp: 0301-2589603.
+
+Payment for Link Road route
+Bank Title: Israr Muhammad
+Easy Paisa number: 0301-2589603
+AC Van
+Gulshan-e-Hadeed / Steel Town: Rs. 12,000
+All other pickup locations: Rs. 16,000
+Note: Fees will be charged during the leave of the University.'
+where payment_instructions like '%12,500%'
+   or payment_instructions like '%7,500%'
+   or payment_instructions like '%13,000%'
+   or payment_instructions like '%15,000%'
+   or payment_instructions like '%Quaidabad: Rs. 16,000%';
+
+update public.customers
+set monthly_fee = case
+  when drop_address = 'Ziauddin Link Road' and pickup_address in ('Gulshan-e-Hadeed', 'Steel Town') then 12000
+  when drop_address = 'Ziauddin Link Road' then 16000
+  when drop_address <> 'Ziauddin Link Road' and ride_type = 'one_side' then 6500
+  when drop_address <> 'Ziauddin Link Road' and service_days = 'mon_to_fri' then 11500
+  when drop_address <> 'Ziauddin Link Road' then 12000
+  else monthly_fee
+end
+where status in ('pending', 'active')
+  and (
+    monthly_fee in (7500, 9000, 12500, 13000, 15000)
+    or drop_address <> 'Ziauddin Link Road'
+    or drop_address = 'Ziauddin Link Road'
+  );
+
+update public.monthly_fee_records f
+set fee_amount = c.monthly_fee
+from public.customers c
+where f.customer_id = c.id
+  and c.monthly_fee is not null
+  and f.status <> 'paid'
+  and make_date(f.year, f.month, 1) >= date_trunc('month', current_date)::date
+  and f.fee_amount <> c.monthly_fee;
 
 create or replace function public.is_admin()
 returns boolean
@@ -242,6 +333,7 @@ create or replace function public.register_customer_profile(
   p_drop_address text,
   p_ride_type text,
   p_route_id uuid,
+  p_service_days text default 'mon_to_sat',
   p_van_number text default '',
   p_customer_type text default 'new'
 )
@@ -256,6 +348,7 @@ declare
   v_month int := extract(month from current_date)::int;
   v_year int := extract(year from current_date)::int;
   v_ride_type text := coalesce(nullif(p_ride_type, ''), 'both_side');
+  v_service_days text := coalesce(nullif(p_service_days, ''), 'mon_to_sat');
   v_customer_fee numeric := 0;
   v_drop_address text := trim(p_drop_address);
   v_pickup_address text := trim(p_pickup_address);
@@ -276,23 +369,26 @@ begin
     raise exception 'Invalid ride type';
   end if;
 
+  if v_service_days not in ('mon_to_fri', 'mon_to_sat') then
+    raise exception 'Invalid service days';
+  end if;
+
   if v_drop_address = 'Ziauddin Link Road' then
     v_route_note := 'Ziauddin Link Road AC Van';
     v_ride_type := 'both_side';
+    v_service_days := 'mon_to_sat';
     v_customer_fee := case
-      when v_pickup_address = 'Landhi' then 15000
-      when v_pickup_address = 'Shah Latif Town' then 15000
-      when v_pickup_address = 'Razzaqabad' then 13000
-      when v_pickup_address = 'Port Qasim' then 9000
-      when v_pickup_address = 'Steel Town' then 9000
-      when v_pickup_address = 'Bhens Colony' then 13000
-      when v_pickup_address = 'Quaidabad' then 15000
-      when v_pickup_address = 'Gulshan-e-Hadeed' then 9000
+      when v_pickup_address in ('Gulshan-e-Hadeed', 'Steel Town') then 12000
+      when v_pickup_address in ('Landhi', 'Shah Latif Town', 'Razzaqabad', 'Port Qasim', 'Bhens Colony', 'Quaidabad') then 16000
       else 0
     end;
   else
     v_route_note := 'Gulshan-e-Hadeed to Clifton';
-    v_customer_fee := case when v_ride_type = 'one_side' then 7500 else 12500 end;
+    v_customer_fee := case
+      when v_ride_type = 'one_side' then 6500
+      when v_service_days = 'mon_to_fri' then 11500
+      else 12000
+    end;
   end if;
 
   if v_customer_fee <= 0 then
@@ -335,6 +431,7 @@ begin
     pickup_address,
     drop_address,
     ride_type,
+    service_days,
     route_id,
     monthly_fee,
     status,
@@ -351,11 +448,12 @@ begin
     v_pickup_address,
     v_drop_address,
     v_ride_type,
+    v_service_days,
     p_route_id,
     v_customer_fee,
     'active',
     current_date,
-    'Auto registered - ' || v_route_note || coalesce(' - Van: ' || v_van_number, '') || ' - Type: ' || v_customer_type
+    'Auto registered - ' || v_route_note || coalesce(' - Van: ' || v_van_number, '') || ' - Service: ' || replace(v_service_days, '_', '-') || ' - Type: ' || v_customer_type
   )
   returning id into v_customer_id;
 

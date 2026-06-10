@@ -80,6 +80,7 @@ export async function registerCustomerAction(formData: FormData) {
   const pickupAddress = value(formData, "pickup_address");
   const dropAddress = value(formData, "drop_address");
   const rideType = value(formData, "ride_type");
+  const serviceDays = value(formData, "service_days");
   const routeKey = value(formData, "route_key");
   const vanNumber = value(formData, "van_number");
   const customerType = value(formData, "customer_type") === "existing" ? "existing" : "new";
@@ -88,6 +89,7 @@ export async function registerCustomerAction(formData: FormData) {
     dropAddress,
     pickupAddress,
     rideType: rideType === "one_side" ? "one_side" : "both_side",
+    serviceDays: serviceDays === "mon_to_fri" ? "mon_to_fri" : "mon_to_sat",
   });
 
   if (
@@ -108,6 +110,7 @@ export async function registerCustomerAction(formData: FormData) {
     !pickupAddress ||
     !dropAddress ||
     !["both_side", "one_side"].includes(rideType) ||
+    !["mon_to_fri", "mon_to_sat"].includes(serviceDays) ||
     ![cliftonRoute.id, linkRoadRoute.id].includes(routeKey) ||
     !allowedVans.includes(vanNumber) ||
     monthlyFee <= 0
@@ -152,6 +155,7 @@ export async function registerCustomerAction(formData: FormData) {
     p_pickup_address: pickupAddress,
     p_drop_address: dropAddress,
     p_ride_type: rideType,
+    p_service_days: serviceDays,
     p_route_id: null,
     p_van_number: vanNumber,
     p_customer_type: customerType,
@@ -160,7 +164,24 @@ export async function registerCustomerAction(formData: FormData) {
   let { error: profileError } = await supabase.rpc("register_customer_profile", profilePayload);
 
   if (profileError?.code === "PGRST202") {
-    const payloadWithoutCustomerType: Omit<typeof profilePayload, "p_customer_type"> = {
+    const payloadWithoutServiceDays: Omit<typeof profilePayload, "p_service_days"> = {
+      p_user_id: profilePayload.p_user_id,
+      p_full_name: profilePayload.p_full_name,
+      p_phone: profilePayload.p_phone,
+      p_guardian_name: profilePayload.p_guardian_name,
+      p_pickup_address: profilePayload.p_pickup_address,
+      p_drop_address: profilePayload.p_drop_address,
+      p_ride_type: profilePayload.p_ride_type,
+      p_route_id: profilePayload.p_route_id,
+      p_van_number: profilePayload.p_van_number,
+      p_customer_type: profilePayload.p_customer_type,
+    };
+    const retryWithoutServiceDays = await supabase.rpc("register_customer_profile", payloadWithoutServiceDays);
+    profileError = retryWithoutServiceDays.error;
+  }
+
+  if (profileError?.code === "PGRST202") {
+    const payloadWithoutCustomerType: Omit<typeof profilePayload, "p_service_days" | "p_customer_type"> = {
       p_user_id: profilePayload.p_user_id,
       p_full_name: profilePayload.p_full_name,
       p_phone: profilePayload.p_phone,
@@ -176,7 +197,7 @@ export async function registerCustomerAction(formData: FormData) {
   }
 
   if (profileError?.code === "PGRST202") {
-    const legacyProfilePayload: Omit<typeof profilePayload, "p_van_number" | "p_customer_type"> = {
+    const legacyProfilePayload: Omit<typeof profilePayload, "p_service_days" | "p_van_number" | "p_customer_type"> = {
       p_user_id: profilePayload.p_user_id,
       p_full_name: profilePayload.p_full_name,
       p_phone: profilePayload.p_phone,

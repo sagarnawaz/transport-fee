@@ -1,5 +1,6 @@
 import type { RideType } from "@/types/database";
 import type { Settings } from "@/types/database";
+import type { ServiceDays } from "@/types/database";
 
 export const businessName = "Daniyal Transport";
 export const receiptWhatsapp = "0301-2589603";
@@ -10,7 +11,7 @@ export const defaultCliftonPayment = {
   bankName: "Meezan Bank",
   accountNumber: "1047 0109 2680 26",
   receiptWhatsapp,
-  note: "Double side: Rs. 12,500\nSingle side: Rs. 7,500\nPay before the 10th.",
+  note: "Double side Mon-Fri: Rs. 11,500\nDouble side Mon-Sat: Rs. 12,000\nSingle side: Rs. 6,500\nPay before the 10th.",
 };
 
 export const defaultLinkRoadPayment = {
@@ -19,16 +20,22 @@ export const defaultLinkRoadPayment = {
   bankName: "EasyPaisa",
   accountNumber: "0301-2589603",
   receiptWhatsapp,
-  note: "AC Van\nSteel Town: Rs. 9,000\nBhains Colony: Rs. 13,000\nQuaidabad: Rs. 15,000\nFees will be charged during the leave of the University.",
+  note: "AC Van\nGulshan-e-Hadeed / Steel Town: Rs. 12,000\nAll other pickup locations: Rs. 16,000\nFees will be charged during the leave of the University.",
 };
+
+export const serviceDaysOptions: { value: ServiceDays; label: string; shortLabel: string }[] = [
+  { value: "mon_to_fri", label: "Monday to Friday", shortLabel: "Mon-Fri" },
+  { value: "mon_to_sat", label: "Monday to Saturday", shortLabel: "Mon-Sat" },
+];
 
 export const cliftonRoute = {
   id: "clifton",
   name: "Gulshan-e-Hadeed to Clifton",
   drop: "Clifton",
   fees: {
-    both_side: 12500,
-    one_side: 7500,
+    mon_to_fri: 11500,
+    mon_to_sat: 12000,
+    one_side: 6500,
   },
   pickups: [
     "Gulshan-e-Hadeed",
@@ -58,14 +65,14 @@ export const linkRoadRoute = {
   name: "Ziauddin Link Road AC Van",
   drop: "Ziauddin Link Road",
   feesByPickup: {
-    Landhi: 15000,
-    "Shah Latif Town": 15000,
-    Razzaqabad: 13000,
-    "Port Qasim": 9000,
-    "Steel Town": 9000,
-    "Bhens Colony": 13000,
-    Quaidabad: 15000,
-    "Gulshan-e-Hadeed": 9000,
+    Landhi: 16000,
+    "Shah Latif Town": 16000,
+    Razzaqabad: 16000,
+    "Port Qasim": 16000,
+    "Steel Town": 12000,
+    "Bhens Colony": 16000,
+    Quaidabad: 16000,
+    "Gulshan-e-Hadeed": 12000,
   },
   pickups: [
     "Landhi",
@@ -94,16 +101,42 @@ export function calculateDaniyalFee({
   dropAddress,
   pickupAddress,
   rideType,
+  serviceDays = "mon_to_sat",
 }: {
   dropAddress: string;
   pickupAddress: string;
   rideType: RideType;
+  serviceDays?: ServiceDays;
 }) {
   if (dropAddress === linkRoadRoute.drop) {
     return linkRoadRoute.feesByPickup[pickupAddress as keyof typeof linkRoadRoute.feesByPickup] ?? 0;
   }
 
-  return cliftonRoute.fees[rideType] ?? cliftonRoute.fees.both_side;
+  if (rideType === "one_side") return cliftonRoute.fees.one_side;
+
+  return cliftonRoute.fees[serviceDays] ?? cliftonRoute.fees.mon_to_sat;
+}
+
+export function serviceDaysLabel(serviceDays: ServiceDays | string | null | undefined) {
+  return serviceDaysOptions.find((option) => option.value === serviceDays)?.label ?? "Monday to Saturday";
+}
+
+export function serviceDaysShortLabel(serviceDays: ServiceDays | string | null | undefined) {
+  return serviceDaysOptions.find((option) => option.value === serviceDays)?.shortLabel ?? "Mon-Sat";
+}
+
+export function ridePlanLabel({
+  dropAddress,
+  rideType,
+  serviceDays,
+}: {
+  dropAddress?: string | null;
+  rideType?: RideType | string | null;
+  serviceDays?: ServiceDays | string | null;
+}) {
+  if (dropAddress === linkRoadRoute.drop) return "Fixed route fee";
+  if (rideType === "one_side") return "One side";
+  return `Both side - ${serviceDaysShortLabel(serviceDays)}`;
 }
 
 export function paymentInstructionsForDrop(dropAddress: string | null | undefined) {
@@ -114,9 +147,8 @@ export function paymentInstructionsForDrop(dropAddress: string | null | undefine
       "Easy Paisa number: 0301-2589603",
       "Monthly Fees:",
       "AC Van",
-      "Steel Town towards Ziauddin Link Road: Rs. 9,000",
-      "Bhains Colony towards Ziauddin Link Road: Rs. 13,000",
-      "Quaidabad towards Ziauddin Link Road: Rs. 15,000",
+      "Gulshan-e-Hadeed / Steel Town towards Ziauddin Link Road: Rs. 12,000",
+      "All other pickup locations towards Ziauddin Link Road: Rs. 16,000",
       "Note: Fees will be charged during the leave of the University.",
     ].join("\n");
   }
@@ -126,8 +158,9 @@ export function paymentInstructionsForDrop(dropAddress: string | null | undefine
     "Bank Title: Israr Muhammad",
     "Meezan Bank number: 1047 0109 2680 26",
     "Monthly Fees:",
-    "Double side: Rs. 12,500",
-    "Single side: Rs. 7,500",
+    "Double side Mon-Fri: Rs. 11,500",
+    "Double side Mon-Sat: Rs. 12,000",
+    "Single side: Rs. 6,500",
     "Note: Pay your van fees before 10 and always send screenshot of your bank receipt on WhatsApp number: 0301-2589603 when you pay van fees.",
   ].join("\n");
 }

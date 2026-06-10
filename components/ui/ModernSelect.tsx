@@ -38,14 +38,14 @@ export function ModernSelect({
       <input name={name} type="hidden" value={value} />
       <button
         aria-expanded={open}
-        className="field flex min-h-12 items-center justify-between gap-3 text-left"
+        className="field flex min-h-12 items-start justify-between gap-3 text-left sm:items-center"
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
-        <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{selected?.label ?? "Select"}</span>
+        <span className="min-w-0 flex-1 break-words font-semibold leading-5 text-slate-900">{selected?.label ?? "Select"}</span>
         <ChevronDown
           aria-hidden="true"
-          className={`shrink-0 text-slate-500 transition duration-200 ${open ? "rotate-180 text-red-700" : ""}`}
+          className={`mt-0.5 shrink-0 text-slate-500 transition duration-200 sm:mt-0 ${open ? "rotate-180 text-red-700" : ""}`}
           size={18}
         />
       </button>

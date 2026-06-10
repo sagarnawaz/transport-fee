@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { requireRole } from "@/lib/auth-guards";
 import { createClient } from "@/lib/supabase/server";
-import { businessName } from "@/lib/daniyal-transport";
+import { businessName, ridePlanLabel } from "@/lib/daniyal-transport";
 import { clampMonth, currentMonthYear, formatDisplayDate, formatDisplayDateTime, formatMoney, formatMonthYear, safeYear } from "@/lib/utils/date";
 import { defaultReminderTemplate, renderReminder, whatsappLink } from "@/lib/whatsapp/reminder";
 import { FeeFilters } from "./FeeFilters";
@@ -39,7 +39,7 @@ export default async function MonthlyFeesPage({
   const [{ data: fees }, { data: settings }] = await Promise.all([
     supabase
       .from("monthly_fee_records")
-      .select("*, customers(customer_code, full_name, phone, whatsapp_number), payment_proofs(*)")
+      .select("*, customers(customer_code, full_name, phone, whatsapp_number, ride_type, service_days, drop_address), payment_proofs(*)")
       .eq("month", month)
       .eq("year", year)
       .order("created_at", { ascending: false }),
@@ -177,6 +177,9 @@ export default async function MonthlyFeesPage({
                 <div className="min-w-0">
                   <p className="truncate text-base font-bold text-slate-950">{customer?.full_name ?? "Customer"}</p>
                   <p className="mt-1 text-sm text-slate-600">{customer?.customer_code ?? "-"} - {customer?.phone ?? "-"}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {ridePlanLabel({ dropAddress: customer?.drop_address, rideType: customer?.ride_type, serviceDays: customer?.service_days })}
+                  </p>
                 </div>
                 <StatusBadge status={isPaid ? "paid" : fee.status} />
               </div>

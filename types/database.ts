@@ -3,6 +3,7 @@ export type CustomerStatus = "pending" | "active" | "rejected" | "inactive";
 export type FeeStatus = "unpaid" | "pending_verification" | "paid" | "partial" | "rejected";
 export type ProofStatus = "pending" | "approved" | "rejected";
 export type RideType = "both_side" | "one_side";
+export type ServiceDays = "mon_to_fri" | "mon_to_sat";
 
 export type Profile = {
   id: string;
@@ -33,6 +34,7 @@ export type Customer = {
   pickup_address: string;
   drop_address: string;
   ride_type: RideType;
+  service_days: ServiceDays;
   route_id: string | null;
   monthly_fee: number | null;
   status: CustomerStatus;

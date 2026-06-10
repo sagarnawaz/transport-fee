@@ -2,6 +2,7 @@ import { SetupNotice } from "@/components/ui/SetupNotice";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getCurrentCustomer } from "@/lib/app-queries";
 import { requireRole } from "@/lib/auth-guards";
+import { ridePlanLabel } from "@/lib/daniyal-transport";
 import { formatDisplayDate, formatMoney } from "@/lib/utils/date";
 
 export default async function ProfilePage() {
@@ -24,6 +25,7 @@ export default async function ProfilePage() {
           <div><dt className="text-slate-500">WhatsApp</dt><dd>{customer?.whatsapp_number}</dd></div>
           <div><dt className="text-slate-500">Guardian</dt><dd>{customer?.guardian_name ?? "-"}</dd></div>
           <div><dt className="text-slate-500">Route</dt><dd>{customer?.routes?.route_name ?? "Not assigned"}</dd></div>
+          <div><dt className="text-slate-500">Plan</dt><dd>{ridePlanLabel({ dropAddress: customer?.drop_address, rideType: customer?.ride_type, serviceDays: customer?.service_days })}</dd></div>
           <div><dt className="text-slate-500">Monthly fee</dt><dd>{formatMoney(customer?.monthly_fee)}</dd></div>
           <div><dt className="text-slate-500">Joining date</dt><dd>{formatDisplayDate(customer?.joining_date)}</dd></div>
           <div className="sm:col-span-2"><dt className="text-slate-500">Pickup</dt><dd>{customer?.pickup_address}</dd></div>

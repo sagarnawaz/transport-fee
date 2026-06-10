@@ -18,7 +18,7 @@ export default async function SettingsPage() {
         <h1 className="text-2xl font-bold">Settings</h1>
         <input name="id" type="hidden" value={settings?.id ?? ""} />
         <input name="business_name" type="hidden" value={settings?.business_name ?? businessName} />
-        <input name="default_monthly_fee" type="hidden" value={settings?.default_monthly_fee ?? cliftonRoute.fees.both_side} />
+        <input name="default_monthly_fee" type="hidden" value={settings?.default_monthly_fee ?? cliftonRoute.fees.mon_to_sat} />
         <input name="default_due_day" type="hidden" value={settings?.default_due_day ?? 10} />
         <input name="pickup_locations" type="hidden" value={settings?.pickup_locations ?? daniyalPickupLocations.join("\n")} />
         <input name="drop_locations" type="hidden" value={settings?.drop_locations ?? daniyalDropLocations.join("\n")} />

@@ -8,9 +8,9 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ModernSelect } from "@/components/ui/ModernSelect";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { calculateDaniyalFee, cliftonRoute, linkRoadRoute } from "@/lib/daniyal-transport";
+import { calculateDaniyalFee, cliftonRoute, linkRoadRoute, serviceDaysOptions, serviceDaysShortLabel } from "@/lib/daniyal-transport";
 import { formatMoney, prorateMonthlyFee } from "@/lib/utils/date";
-import type { RideType } from "@/types/database";
+import type { RideType, ServiceDays } from "@/types/database";
 
 const steps = ["Account", "Ride", "Review"] as const;
 const customerTypeOptions = [
@@ -35,6 +35,7 @@ export function RegisterForm({
   const [routeId, setRouteId] = useState(cliftonRoute.id);
   const [pickupAddress, setPickupAddress] = useState(cliftonRoute.pickups[0]);
   const [rideType, setRideType] = useState<RideType>("both_side");
+  const [serviceDays, setServiceDays] = useState<ServiceDays>("mon_to_sat");
   const [customerType, setCustomerType] = useState<"new" | "existing">("existing");
   const [vanNumber, setVanNumber] = useState(cliftonRoute.vans[0]);
   const passwordMismatch = Boolean(confirmPassword) && password !== confirmPassword;
@@ -49,11 +50,12 @@ export function RegisterForm({
     dropAddress: selectedRoute.drop,
     pickupAddress,
     rideType: effectiveRideType,
+    serviceDays,
   });
   const firstMonthFee = prorateMonthlyFee(monthlyFee || fullFee);
   const currentMonthFee = customerType === "existing" ? monthlyFee || fullFee : firstMonthFee;
   const customerTypeLabel = customerType === "existing" ? "Existing customer" : "New customer";
-  const rideTypeLabel = effectiveRideType === "one_side" ? "Single side" : "Double side";
+  const rideTypeLabel = effectiveRideType === "one_side" ? "Single side" : `Double side - ${serviceDaysShortLabel(serviceDays)}`;
 
   function validateStep(nextStep: number) {
     const currentStep = document.querySelector<HTMLElement>(`[data-register-step="${step}"]`);
@@ -125,10 +127,10 @@ export function RegisterForm({
         <p className="text-xs font-bold uppercase text-red-700">Current month fee</p>
         <p className="mt-1 text-2xl font-bold text-slate-950">{formatMoney(currentMonthFee)}</p>
         <p className="mt-1 text-sm font-semibold text-slate-700">Full monthly fee: {formatMoney(monthlyFee || fullFee)}</p>
-        <p className="mt-1 text-sm text-red-900">
+        <p className="mt-1 break-words text-sm leading-6 text-red-900">
           {selectedRoute.id === cliftonRoute.id
-            ? `Double side: ${formatMoney(fullFee)} | Single side: ${formatMoney(halfFee)}`
-            : "Steel Town: Rs. 9,000 | Bhains Colony: Rs. 13,000 | Quaidabad: Rs. 15,000"}
+            ? `Mon-Fri: ${formatMoney(cliftonRoute.fees.mon_to_fri)} | Mon-Sat: ${formatMoney(cliftonRoute.fees.mon_to_sat)} | Single side: ${formatMoney(halfFee)}`
+            : "Gulshan-e-Hadeed / Steel Town: Rs. 12,000 | Other pickups: Rs. 16,000"}
         </p>
         <p className="mt-2 text-xs leading-5 text-red-900">
           {customerType === "existing"
@@ -201,17 +203,8 @@ export function RegisterForm({
           </div>
         </section>
 
-        <section className={step === 1 ? "grid items-start gap-5 sm:grid-cols-2" : "hidden"} data-register-step="1">
-          <div className="sm:col-span-2">
-            <ModernSelect
-              label="Customer type"
-              name="customer_type"
-              onChange={(value) => setCustomerType(value === "existing" ? "existing" : "new")}
-              options={customerTypeOptions}
-              value={customerType}
-            />
-          </div>
-          <div className="grid gap-2 sm:col-span-2">
+        <section className={step === 1 ? "grid min-w-0 items-start gap-4 sm:grid-cols-2 sm:gap-5" : "hidden"} data-register-step="1">
+          <div className="grid min-w-0 gap-2 sm:col-span-2">
             <ModernSelect
               label="Service route"
               name="route_key"
@@ -222,12 +215,12 @@ export function RegisterForm({
               ]}
               value={routeId}
             />
-            <span className="text-xs font-bold leading-5 text-red-700">
-              Amount to pay now: {formatMoney(currentMonthFee)}
+            <span className="break-words rounded-lg bg-red-50 px-3 py-2 text-xs font-bold leading-5 text-red-700">
+              Full monthly fee: {formatMoney(monthlyFee || fullFee)}
             </span>
             {selectedRoute.id === linkRoadRoute.id ? (
-              <span className="text-xs font-semibold leading-5 text-slate-600">
-                This route has a fixed single-route fee. Single side / double side selection is not needed.
+              <span className="break-words rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold leading-5 text-slate-600">
+                This route fee depends on pickup location. Single side / double side selection is not needed.
               </span>
             ) : null}
           </div>
@@ -238,29 +231,48 @@ export function RegisterForm({
             options={pickupOptions.map((location) => ({ value: location, label: location }))}
             value={pickupAddress}
           />
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <span className="label">Destination</span>
-            <div className="field flex items-center bg-slate-50 text-slate-700">{selectedRoute.drop}</div>
+            <div className="field flex min-h-12 items-center break-words bg-slate-50 text-slate-700">{selectedRoute.drop}</div>
             <input name="drop_address" type="hidden" value={selectedRoute.drop} />
           </div>
           {selectedRoute.id === cliftonRoute.id ? (
-            <ModernSelect
-              label="Fee type"
-              name="ride_type"
-              onChange={(value) => setRideType(value as RideType)}
-              options={[
-                { value: "both_side", label: `Double side - ${formatMoney(fullFee)}` },
-                { value: "one_side", label: `Single side - ${formatMoney(halfFee)}` },
-              ]}
-              value={rideType}
-            />
+            <>
+              <ModernSelect
+                label="Fee type"
+                name="ride_type"
+                onChange={(value) => setRideType(value as RideType)}
+                options={[
+                  { value: "both_side", label: "Double side" },
+                  { value: "one_side", label: `Single side - ${formatMoney(halfFee)}` },
+                ]}
+                value={rideType}
+              />
+              {rideType === "both_side" ? (
+                <ModernSelect
+                  label="Service days"
+                  name="service_days"
+                  onChange={(value) => setServiceDays(value as ServiceDays)}
+                  options={serviceDaysOptions.map((option) => ({
+                    value: option.value,
+                    label: `${option.label} - ${formatMoney(cliftonRoute.fees[option.value])}`,
+                  }))}
+                  value={serviceDays}
+                />
+              ) : (
+                <input name="service_days" type="hidden" value={serviceDays} />
+              )}
+            </>
           ) : (
-            <input name="ride_type" type="hidden" value="both_side" />
+            <>
+              <input name="ride_type" type="hidden" value="both_side" />
+              <input name="service_days" type="hidden" value="mon_to_sat" />
+            </>
           )}
-          <div className={`grid gap-2 ${selectedRoute.id === linkRoadRoute.id ? "sm:col-span-2" : ""}`}>
-            <span className="flex flex-wrap items-center justify-between gap-2">
+          <div className={`grid min-w-0 gap-2 ${selectedRoute.id === linkRoadRoute.id ? "sm:col-span-2" : ""}`}>
+            <span className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="label">Van</span>
-              <a className="text-xs font-semibold text-red-700 underline" href={timingHref} rel="noreferrer" target="_blank">
+              <a className="inline-flex min-h-9 items-center rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-semibold leading-5 text-red-700 underline sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0" href={timingHref} rel="noreferrer" target="_blank">
                 Click here to see van timings
               </a>
             </span>
@@ -272,15 +284,24 @@ export function RegisterForm({
               value={vanNumber}
             />
           </div>
+          <div className="sm:col-span-2">
+            <ModernSelect
+              label="Customer type"
+              name="customer_type"
+              onChange={(value) => setCustomerType(value === "existing" ? "existing" : "new")}
+              options={customerTypeOptions}
+              value={customerType}
+            />
+          </div>
           <label className="grid gap-2 sm:col-span-2">
             <span className="label">Amount to pay now</span>
             <input
               aria-live="polite"
-              className="field border-red-200 bg-red-50 text-lg font-bold text-red-800"
+              className="field border-red-200 bg-red-50 text-base font-bold text-red-800 sm:text-lg"
               readOnly
               value={formatMoney(currentMonthFee)}
             />
-            <span className="text-xs leading-5 text-slate-600">
+            <span className="break-words text-xs leading-5 text-slate-600">
               Full monthly fee is {formatMoney(monthlyFee || fullFee)}.{" "}
               {customerType === "existing"
                 ? "Existing customer selected, so this month uses the full fee."

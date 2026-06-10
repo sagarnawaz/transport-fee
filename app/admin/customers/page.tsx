@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { csvDownloadHref } from "@/lib/csv/export";
 import { requireRole } from "@/lib/auth-guards";
 import { createClient } from "@/lib/supabase/server";
+import { ridePlanLabel } from "@/lib/daniyal-transport";
 import { currentMonthYear, formatDisplayDate, formatMoney, formatMonthYear } from "@/lib/utils/date";
 import { whatsappLink } from "@/lib/whatsapp/reminder";
 
@@ -64,6 +65,7 @@ export default async function CustomersPage() {
         Paid: paidAmount,
         Pending: pendingAmount,
         Status: status,
+        Plan: ridePlanLabel({ dropAddress: customer.drop_address, rideType: customer.ride_type, serviceDays: customer.service_days }),
         Pickup: customer.pickup_address,
         Drop: customer.drop_address,
       },
@@ -154,6 +156,10 @@ export default async function CustomersPage() {
                 <div>
                   <p className="text-slate-500">Monthly fee</p>
                   <p className="font-semibold text-slate-950">{formatMoney(fee?.fee_amount ?? customer.monthly_fee)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Plan</p>
+                  <p className="font-semibold text-slate-950">{ridePlanLabel({ dropAddress: customer.drop_address, rideType: customer.ride_type, serviceDays: customer.service_days })}</p>
                 </div>
                 <div>
                   <p className="text-slate-500">Joined</p>
