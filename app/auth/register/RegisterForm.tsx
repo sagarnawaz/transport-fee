@@ -118,45 +118,59 @@ export function RegisterForm({
       <div className="mx-auto w-36">
         <BrandLogo />
       </div>
-      <p className="mt-4 text-center text-sm font-semibold text-red-700">Customer registration</p>
-      <h1 className="mt-1 text-center text-2xl font-bold text-slate-950">Create your account</h1>
-      <p className="mx-auto mt-2 max-w-md text-center text-sm leading-6 text-slate-600">
-        Your customer ID and current month fee will be created automatically after registration.
-      </p>
-      <div className="mt-5 rounded-lg border border-red-100 bg-red-50 p-4">
-        <p className="text-xs font-bold uppercase text-red-700">Current month fee</p>
-        <p className="mt-1 text-2xl font-bold text-slate-950">{formatMoney(currentMonthFee)}</p>
-        <p className="mt-1 text-sm font-semibold text-slate-700">Full monthly fee: {formatMoney(monthlyFee || fullFee)}</p>
-        <p className="mt-1 break-words text-sm leading-6 text-red-900">
-          {selectedRoute.id === cliftonRoute.id
-            ? `Mon-Fri: ${formatMoney(cliftonRoute.fees.mon_to_fri)} | Mon-Sat: ${formatMoney(cliftonRoute.fees.mon_to_sat)} | Single side: ${formatMoney(halfFee)}`
-            : "Gulshan-e-Hadeed / Steel Town: Rs. 12,000 | Other pickups: Rs. 16,000"}
-        </p>
-        <p className="mt-2 text-xs leading-5 text-red-900">
-          {customerType === "existing"
-            ? "Existing customers are charged the full monthly fee for the current month."
-            : "New customers are charged only for remaining days from registration date. Next month onward full monthly fee applies."}
-        </p>
-      </div>
+      <h1 className="mt-4 text-center text-2xl font-bold text-slate-950">Create your account</h1>
+      {step === 1 ? (
+        <div className="mt-5 rounded-lg border border-red-100 bg-red-50 p-4">
+          <p className="text-xs font-bold uppercase text-red-700">Current month fee</p>
+          <p className="mt-1 text-2xl font-bold text-slate-950">{formatMoney(currentMonthFee)}</p>
+          <p className="mt-1 text-sm font-semibold text-slate-700">Full monthly fee: {formatMoney(monthlyFee || fullFee)}</p>
+          <p className="mt-1 break-words text-sm leading-6 text-red-900">
+            {selectedRoute.id === cliftonRoute.id
+              ? `Mon-Fri: ${formatMoney(cliftonRoute.fees.mon_to_fri)} | Mon-Sat: ${formatMoney(cliftonRoute.fees.mon_to_sat)} | Single side: ${formatMoney(halfFee)}`
+              : "Gulshan-e-Hadeed / Steel Town: Rs. 12,000 | Other pickups: Rs. 16,000"}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-red-900">
+            {customerType === "existing"
+              ? "Existing customers are charged the full monthly fee for the current month."
+              : "New customers are charged only for remaining days from registration date. Next month onward full monthly fee applies."}
+          </p>
+        </div>
+      ) : null}
       {errorMessage ? <p className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{errorMessage}</p> : null}
-      <div className="mt-5 grid grid-cols-3 gap-2" aria-label="Registration progress">
-        {steps.map((label, index) => (
-          <button
-            className={`rounded-lg border px-2 py-2 text-xs font-bold ${
-              index === step
-                ? "border-red-700 bg-red-700 text-white"
-                : index < step
-                  ? "border-red-200 bg-red-50 text-red-800"
-                  : "border-slate-200 bg-white text-slate-500"
-            }`}
-            key={label}
-            onClick={() => (index < step ? setStep(index) : undefined)}
-            type="button"
-          >
-            {index + 1}. {label}
-          </button>
-        ))}
-      </div>
+      <ol className="mt-5 grid grid-cols-3 items-start gap-2" aria-label="Registration progress">
+        {steps.map((label, index) => {
+          const isCurrent = index === step;
+          const isComplete = index < step;
+
+          return (
+            <li className="relative grid min-w-0 justify-items-center gap-2 text-center" key={label}>
+              {index > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className={`absolute right-1/2 top-4 h-0.5 w-full ${
+                    isComplete || isCurrent ? "bg-red-700" : "bg-slate-200"
+                  }`}
+                />
+              ) : null}
+              <span
+                aria-current={isCurrent ? "step" : undefined}
+                className={`relative z-10 grid h-8 w-8 place-items-center rounded-full border text-xs font-bold ${
+                  isCurrent
+                    ? "border-red-700 bg-red-700 text-white shadow-sm"
+                    : isComplete
+                      ? "border-red-700 bg-red-50 text-red-800"
+                      : "border-slate-300 bg-white text-slate-500"
+                }`}
+              >
+                {index + 1}
+              </span>
+              <span className={`break-words text-xs font-bold leading-4 ${isCurrent ? "text-red-800" : isComplete ? "text-slate-800" : "text-slate-500"}`}>
+                {label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
       <form action={registerCustomerAction} className="mt-6">
         <section className={step === 0 ? "grid items-start gap-5 sm:grid-cols-2" : "hidden"} data-register-step="0">
           <label className="grid gap-2">
